@@ -53,38 +53,99 @@ async function fdFetch(path) {
 
 // Busca grupos e equipas do Mundial 2026
 // Usa /teams que e mais fiavel que /standings para obter os grupos
-// Busca grupos e equipas do Mundial 2026
-// A API devolve standings com group:null — cada elemento do array e um grupo,
-// pela ordem A, B, C... D, E, F, G, H, I, J, K, L
+// Grupos estaticos do Mundial 2026 (API nao devolve grupos separados no tier gratuito)
+// Os resultados sao buscados dinamicamente da API
+function getWCGroups() {
+  const GROUPS = [
+    { id:'A', teams:[
+      { id:769,  name:'Mexico',           tla:'MEX', flag_code:'mx'     },
+      { id:799,  name:'Coreia do Sul',    tla:'KOR', flag_code:'kr'     },
+      { id:815,  name:'Africa do Sul',    tla:'RSA', flag_code:'za'     },
+      { id:798,  name:'Chequia',          tla:'CZE', flag_code:'cz'     },
+    ]},
+    { id:'B', teams:[
+      { id:759,  name:'Canada',           tla:'CAN', flag_code:'ca'     },
+      { id:788,  name:'Suica',            tla:'SUI', flag_code:'ch'     },
+      { id:8601, name:'Qatar',            tla:'QAT', flag_code:'qa'     },
+      { id:784,  name:'Italia',           tla:'ITA', flag_code:'it'     },
+    ]},
+    { id:'C', teams:[
+      { id:764,  name:'Brasil',           tla:'BRA', flag_code:'br'     },
+      { id:1996, name:'Marrocos',         tla:'MAR', flag_code:'ma'     },
+      { id:833,  name:'Escocia',          tla:'SCO', flag_code:'gb-sct' },
+      { id:5765, name:'Haiti',            tla:'HAI', flag_code:'ht'     },
+    ]},
+    { id:'D', teams:[
+      { id:768,  name:'EUA',              tla:'USA', flag_code:'us'     },
+      { id:780,  name:'Paraguai',         tla:'PAR', flag_code:'py'     },
+      { id:797,  name:'Australia',        tla:'AUS', flag_code:'au'     },
+      { id:803,  name:'Turquia',          tla:'TUR', flag_code:'tr'     },
+    ]},
+    { id:'E', teams:[
+      { id:759,  name:'Alemanha',         tla:'GER', flag_code:'de'     },
+      { id:762,  name:'Equador',          tla:'ECU', flag_code:'ec'     },
+      { id:1761, name:'Costa do Marfim',  tla:'CIV', flag_code:'ci'     },
+      { id:6318, name:'Curcao',           tla:'CUW', flag_code:'cw'     },
+    ]},
+    { id:'F', teams:[
+      { id:786,  name:'Paises Baixos',    tla:'NED', flag_code:'nl'     },
+      { id:796,  name:'Japao',            tla:'JPN', flag_code:'jp'     },
+      { id:803,  name:'Tunisia',          tla:'TUN', flag_code:'tn'     },
+      { id:790,  name:'Ucrania',          tla:'UKR', flag_code:'ua'     },
+    ]},
+    { id:'G', teams:[
+      { id:805,  name:'Belgica',          tla:'BEL', flag_code:'be'     },
+      { id:793,  name:'Irao',             tla:'IRN', flag_code:'ir'     },
+      { id:1954, name:'Egipto',           tla:'EGY', flag_code:'eg'     },
+      { id:1581, name:'Nova Zelandia',    tla:'NZL', flag_code:'nz'     },
+    ]},
+    { id:'H', teams:[
+      { id:760,  name:'Espanha',          tla:'ESP', flag_code:'es'     },
+      { id:780,  name:'Uruguai',          tla:'URU', flag_code:'uy'     },
+      { id:1906, name:'Arabia Saudita',   tla:'KSA', flag_code:'sa'     },
+      { id:6308, name:'Cabo Verde',       tla:'CPV', flag_code:'cv'     },
+    ]},
+    { id:'I', teams:[
+      { id:773,  name:'Franca',           tla:'FRA', flag_code:'fr'     },
+      { id:907,  name:'Senegal',          tla:'SEN', flag_code:'sn'     },
+      { id:781,  name:'Noruega',          tla:'NOR', flag_code:'no'     },
+      { id:8475, name:'Iraque',           tla:'IRQ', flag_code:'iq'     },
+    ]},
+    { id:'J', teams:[
+      { id:762,  name:'Argentina',        tla:'ARG', flag_code:'ar'     },
+      { id:816,  name:'Austria',          tla:'AUT', flag_code:'at'     },
+      { id:1937, name:'Algeria',          tla:'ALG', flag_code:'dz'     },
+      { id:8487, name:'Jordania',         tla:'JOR', flag_code:'jo'     },
+    ]},
+    { id:'K', teams:[
+      { id:765,  name:'Portugal',         tla:'POR', flag_code:'pt'     },
+      { id:771,  name:'Colombia',         tla:'COL', flag_code:'co'     },
+      { id:9728, name:'Uzbequistao',      tla:'UZB', flag_code:'uz'     },
+      { id:1963, name:'RD Congo',         tla:'COD', flag_code:'cd'     },
+    ]},
+    { id:'L', teams:[
+      { id:770,  name:'Inglaterra',       tla:'ENG', flag_code:'gb-eng' },
+      { id:799,  name:'Croacia',          tla:'CRO', flag_code:'hr'     },
+      { id:800,  name:'Panama',           tla:'PAN', flag_code:'pa'     },
+      { id:1990, name:'Gana',             tla:'GHA', flag_code:'gh'     },
+    ]},
+  ];
+
+  // Enriquecer com crests da API (URL padrao football-data)
+  return GROUPS.map(g => ({
+    ...g,
+    label: `Grupo ${g.id}`,
+    teams: g.teams.map(t => ({
+      ...t,
+      shortName: t.name,
+      crest: `https://crests.football-data.org/${t.id}.svg`,
+    }))
+  }));
+}
+
+// fetchWCGroups agora retorna os dados estaticos
 async function fetchWCGroups() {
-  const data = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
-  const letters = 'ABCDEFGHIJKL'.split('');
-  const groups  = [];
-  let   gi      = 0; // indice de grupo
-
-  for (const standing of (data.standings || [])) {
-    // So queremos TOTAL (nao HOME nem AWAY)
-    if (standing.type !== 'TOTAL') continue;
-    // So queremos GROUP_STAGE
-    if (standing.stage !== 'GROUP_STAGE') continue;
-
-    const letter = letters[gi] || String(gi + 1);
-    gi++;
-
-    const teams = (standing.table || []).map(row => ({
-      id:        row.team.id,
-      name:      row.team.name,
-      shortName: row.team.shortName || row.team.tla,
-      flag_code: tlaToFlagCode(row.team.tla, row.team.name),
-      crest:     row.team.crest,
-    }));
-
-    if (teams.length > 0) {
-      groups.push({ id: letter, label: `Grupo ${letter}`, teams });
-    }
-  }
-
-  return groups;
+  return getWCGroups();
 }
 
 // Busca todos os jogos do WC e calcula quem passou cada fase
