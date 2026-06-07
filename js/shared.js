@@ -52,30 +52,70 @@ async function fdFetch(path) {
 }
 
 // Busca grupos e equipas do Mundial 2026
-// Retorna: { groups: [{id, label, teams:[{id,name,flag_code,crest}]}] }
+// Usa /teams que e mais fiavel que /standings para obter os grupos
 async function fetchWCGroups() {
+  const data = await fdFetch(`/competitions/WC/teams?season=${WC_SEASON}`);
+  const groupMap = {};
+
+  for (const team of (data.teams || [])) {
+    // A API devolve group como "Group A", "Group B", etc.
+    const raw = team.group || '';
+    // Suporta "Group A", "GROUP_A", "A"
+    const letter = raw.replace(/^Group\s+/i, '').replace(/^GROUP_/, '').trim();
+    if (!letter || letter.length !== 1) continue;
+
+    if (!groupMap[letter]) groupMap[letter] = [];
+    groupMap[letter].push({
+      id:        team.id,
+      name:      team.name,
+      shortName: team.shortName || team.tla,
+      flag_code: tlaToFlagCode(team.tla, team.name),
+      crest:     team.crest,
+    });
+  }
+
+  const groups = Object.entries(groupMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([letter, teams]) => ({
+      id: letter,
+      label: `Grupo ${letter}`,
+      teams,
+    }));
+
+  // Fallback: se a API nao devolver grupos, usar standings
+  if (groups.length === 0) {
+    return fetchWCGroupsFromStandings();
+  }
+
+  return groups;
+}
+
+// Fallback via standings
+async function fetchWCGroupsFromStandings() {
   const data = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
-  const groups = [];
+  const groupMap = {};
 
   for (const standing of (data.standings || [])) {
-    if (standing.type !== 'TOTAL') continue;
-    const groupLetter = standing.group?.replace('GROUP_', '') || '?';
-    const teams = standing.table.map(row => ({
+    // standings tem type HOME, AWAY, TOTAL - queremos TOTAL
+    // mas se nao houver TOTAL, aceitar qualquer um uma vez por grupo
+    const raw   = standing.group || '';
+    const letter = raw.replace(/^Group\s+/i, '').replace(/^GROUP_/, '').trim();
+    if (!letter || letter.length !== 1) continue;
+    if (groupMap[letter]) continue; // ja temos este grupo
+
+    const teams = (standing.table || []).map(row => ({
       id:        row.team.id,
       name:      row.team.name,
       shortName: row.team.shortName || row.team.tla,
       flag_code: tlaToFlagCode(row.team.tla, row.team.name),
       crest:     row.team.crest,
-      // posicao na classificacao
-      position:  row.position,
-      points:    row.points,
-      played:    row.playedGames,
     }));
-    groups.push({ id: groupLetter, label: `Grupo ${groupLetter}`, teams });
+    if (teams.length > 0) groupMap[letter] = teams;
   }
 
-  groups.sort((a, b) => a.id.localeCompare(b.id));
-  return groups;
+  return Object.entries(groupMap)
+    .sort(([a],[b]) => a.localeCompare(b))
+    .map(([letter, teams]) => ({ id: letter, label: `Grupo ${letter}`, teams }));
 }
 
 // Busca todos os jogos do WC e calcula quem passou cada fase
