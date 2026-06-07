@@ -1,1 +1,4 @@
-/pages/*  /index.html  404
+/index.html   /index.html   200
+/lobby.html   /lobby.html   200
+/group.html   /group.html   200
+/*            /index.html   200
