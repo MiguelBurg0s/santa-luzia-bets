@@ -60,7 +60,7 @@ function getWCGroups() {
   const GROUPS = [
     { id:'A', teams:[
       { id:769,  name:'Mexico',          tla:'MEX', flag_code:'mx'     },
-      { id:7809, name:'Africa do Sul',   tla:'RSA', flag_code:'za'     },
+      { id:815,  name:'Africa do Sul',   tla:'RSA', flag_code:'za'     },
       { id:732,  name:'Coreia do Sul',   tla:'KOR', flag_code:'kr'     },
       { id:798,  name:'Chequia',         tla:'CZE', flag_code:'cz'     },
     ]},
@@ -83,7 +83,7 @@ function getWCGroups() {
       { id:803,  name:'Turquia',         tla:'TUR', flag_code:'tr'     },
     ]},
     { id:'E', teams:[
-      { id:759,  name:'Alemanha',        tla:'GER', flag_code:'de'     },
+      { id:759,  name:'Alemanha',         tla:'GER', flag_code:'de'     },
       { id:6318, name:'Curcao',          tla:'CUW', flag_code:'cw'     },
       { id:1761, name:'Costa do Marfim', tla:'CIV', flag_code:'ci'     },
       { id:762,  name:'Equador',         tla:'ECU', flag_code:'ec'     },
@@ -132,14 +132,14 @@ function getWCGroups() {
     ]},
   ];
 
-  // Enriquecer com crests da API (URL padrao football-data)
+  // Sem crests - usar apenas bandeiras flagcdn
   return GROUPS.map(g => ({
     ...g,
     label: `Grupo ${g.id}`,
     teams: g.teams.map(t => ({
       ...t,
       shortName: t.name,
-      crest: `https://crests.football-data.org/${t.id}.svg`,
+      crest: null,
     }))
   }));
 }

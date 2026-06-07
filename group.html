@@ -281,10 +281,7 @@ function buildGroupsDOM() {
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
           <span class="bebas" style="font-size:16px;color:var(--gold);flex-shrink:0">GRUPO ${g.id}</span>
           <span style="display:flex;gap:4px;align-items:center">
-            ${g.teams.map(t => t.crest
-              ? `<img src="${t.crest}" width="20" height="20" style="object-fit:contain" onerror="this.src=''" alt="${t.shortName}">`
-              : flagImg(t.flag_code, 18)
-            ).join('')}
+            ${g.teams.map(t => flagImg(t.flag_code, 18)).join('')}
           </span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
@@ -297,10 +294,7 @@ function buildGroupsDOM() {
         <div class="teams-grid">
           ${g.teams.map(t => `
             <button class="team-btn" id="tb-${g.id}-${t.id}" onclick="pickTeam('${g.id}',${t.id})">
-              ${t.crest
-                ? `<img src="${t.crest}" width="24" height="24" style="object-fit:contain;flex-shrink:0" onerror="this.src=''" alt="">`
-                : flagImg(t.flag_code, 24)
-              }
+              ${flagImg(t.flag_code, 24)}
               <span style="flex:1;font-size:12px;margin-left:2px">${t.name}</span>
               <span class="order-badge" id="ob-${g.id}-${t.id}"></span>
             </button>`).join('')}
@@ -482,7 +476,7 @@ function renderRanking() {
       <span style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
         ${teams.length ? teams.map((t,i)=>`
           <span style="display:flex;align-items:center;gap:5px">
-            ${t.crest ? `<img src="${t.crest}" width="16" height="16" style="object-fit:contain">` : flagImg(t.flag_code,16)}
+            ${flagImg(t.flag_code,16)}
             <span>${t.name}</span>
             ${i===2?'<span style="font-size:10px;color:var(--muted)">(3.o?)</span>':''}
           </span>`).join('') : '<span style="color:var(--muted)">-</span>'}
