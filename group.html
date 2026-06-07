@@ -13,13 +13,13 @@
 <div id="loading-screen" class="loading-screen">
   <div class="loading-logo">⚽ <span>SANTA LUZIA</span> BETS</div>
   <div class="spinner"></div>
+  <div id="loading-msg" style="font-size:13px;color:var(--muted);margin-top:.5rem">A carregar dados do Mundial...</div>
 </div>
 
 <div id="main" style="display:none">
-  <!-- HEADER -->
   <div class="header">
     <div class="header-top">
-      <a href="lobby.html" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;flex-shrink:0;display:flex;align-items:center">
+      <a href="lobby.html" style="color:var(--muted);display:flex;align-items:center;flex-shrink:0">
         <i class="ti ti-arrow-left" style="font-size:22px"></i>
       </a>
       <div style="flex:1;min-width:0;overflow:hidden">
@@ -31,40 +31,39 @@
         <span id="header-name" style="font-size:13px;font-weight:500"></span>
         <div id="user-menu" class="user-menu">
           <div class="user-menu-item" onclick="openPerfil(currentProfile)"><i class="ti ti-user"></i> Perfil</div>
-          <a  class="user-menu-item" id="settings-link" href="#"><i class="ti ti-settings"></i> Definições do grupo</a>
+          <a class="user-menu-item" id="settings-link" href="#"><i class="ti ti-settings"></i> Definicoes do grupo</a>
           <div class="user-menu-item" onclick="logout()"><i class="ti ti-logout"></i> Sair</div>
         </div>
       </div>
     </div>
     <div class="tabs">
-      <a class="tab" id="tab-apostas"    href="#apostas"><i class="ti ti-list-check"></i> Apostas</a>
-      <a class="tab" id="tab-resultados" href="#resultados" style="display:none"><i class="ti ti-tournament"></i> Resultados</a>
-      <a class="tab" id="tab-ranking"    href="#ranking"><i class="ti ti-trophy"></i> Ranking</a>
-      <a class="tab" id="tab-regras"     href="#regras"><i class="ti ti-book"></i> Regras</a>
+      <a class="tab" id="tab-apostas" href="#apostas"><i class="ti ti-list-check"></i> Apostas</a>
+      <a class="tab" id="tab-ranking" href="#ranking"><i class="ti ti-trophy"></i> Ranking</a>
+      <a class="tab" id="tab-regras"  href="#regras"><i class="ti ti-book"></i> Regras</a>
     </div>
   </div>
 
-  <!-- SCREENS -->
   <div class="content">
+
     <!-- APOSTAS -->
     <div id="screen-apostas" class="screen" style="display:none">
       <div id="lock-notice"></div>
-      <div class="nota"><span>⭐</span><span>Escolhe até <strong>3 seleções por grupo do Mundial</strong> — 1.º e 2.º que passam sempre, mais um 3.º que achas que é dos melhores 8.</span></div>
+      <div class="nota"><span>⭐</span><span>Escolhe ate <strong>3 selecoes por grupo</strong> — 1.o e 2.o que passam sempre, mais um 3.o que achas que e dos melhores 8.</span></div>
       <div id="groups-container"></div>
-      <button class="btn-primary" id="confirm-btn" disabled style="margin-top:4px" onclick="showToast('✅ Apostas guardadas automaticamente!')">As apostas guardam-se automaticamente</button>
-    </div>
-
-    <!-- RESULTADOS -->
-    <div id="screen-resultados" class="screen" style="display:none">
-      <div class="section-title">Introduzir Resultados</div>
-      <div class="nota"><span>🎯</span><span>Clica nas seleções que <strong>passaram</strong> cada fase. A pontuação atualiza para todos em tempo real.</span></div>
-      <div id="resultados-container"></div>
+      <div style="margin-top:8px;text-align:center;font-size:12px;color:var(--muted)">As apostas sao guardadas automaticamente</div>
     </div>
 
     <!-- RANKING -->
     <div id="screen-ranking" class="screen" style="display:none">
       <div id="score-box"></div>
-      <div class="section-title">Classificação</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
+        <div class="section-title" style="margin:0">Classificacao</div>
+        <button onclick="refreshResults()" id="refresh-btn"
+          style="background:none;border:.5px solid var(--border2);border-radius:8px;padding:5px 10px;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif">
+          <i class="ti ti-refresh"></i> Atualizar
+        </button>
+      </div>
+      <div id="api-status" class="nota" style="display:none;margin-bottom:10px"></div>
       <div class="card" id="ranking-list"></div>
       <div class="section-title" style="margin-top:1.5rem">Convidar amigos</div>
       <div id="invite-section"></div>
@@ -74,39 +73,38 @@
 
     <!-- REGRAS -->
     <div id="screen-regras" class="screen" style="display:none">
-      <div class="section-title">Sistema de Pontuação</div>
+      <div class="section-title">Sistema de Pontuacao</div>
       <div class="rule-card"><div class="rule-icon">📋</div><div style="width:100%"><div class="rule-title">Pontos por fase</div>
         <table class="pts-table">
-          <tr><td>✅ Passa a fase de grupos</td><td>1 pt</td></tr>
-          <tr><td>✅ Passa os 32avos de final</td><td>1 pt</td></tr>
-          <tr><td>✅ Passa os 16avos de final</td><td>2 pts</td></tr>
-          <tr><td>✅ Passa os 8avos de final</td><td>2 pts</td></tr>
-          <tr><td>✅ Passa os quartos de final</td><td>2 pts</td></tr>
-          <tr><td>✅ Passa as meias-finais</td><td>3 pts</td></tr>
-          <tr><td>🏆 Campeão do Mundo</td><td>3 pts</td></tr>
+          <tr><td>Passa a fase de grupos</td><td>1 pt</td></tr>
+          <tr><td>Passa os 32avos de final</td><td>1 pt</td></tr>
+          <tr><td>Passa os 16avos de final</td><td>2 pts</td></tr>
+          <tr><td>Passa os 8avos de final</td><td>2 pts</td></tr>
+          <tr><td>Passa os quartos de final</td><td>2 pts</td></tr>
+          <tr><td>Passa as meias-finais</td><td>3 pts</td></tr>
+          <tr><td>Campiao do Mundo</td><td>3 pts</td></tr>
         </table>
       </div></div>
-      <div class="rule-card"><div class="rule-icon">⭐</div><div><div class="rule-title">Melhores 3.ºs lugares</div>
-        <div class="rule-desc">Com 12 grupos, os 2 primeiros (24 equipas) + os <strong>8 melhores 3.ºs</strong> = 32 equipas nos 32avos. Podes apostar num 3.º — se for dos melhores 8, ganhas o ponto!</div>
+      <div class="rule-card"><div class="rule-icon">⭐</div><div><div class="rule-title">Melhores 3.os lugares</div>
+        <div class="rule-desc">Os 2 primeiros de cada grupo (24) + os <strong>8 melhores 3.os</strong> = 32 equipas nos 32avos. Podes apostar num 3.o — se for dos melhores 8, ganhas o ponto!</div>
       </div></div>
-      <div class="rule-card"><div class="rule-icon">🧮</div><div><div class="rule-title">Máximo por seleção</div>
-        <div class="rule-desc">Campeão que ganha tudo: <strong>1+1+2+2+2+3+3 = <span style="color:var(--gold)">14 pontos</span></strong></div>
+      <div class="rule-card"><div class="rule-icon">🤖</div><div><div class="rule-title">Resultados automaticos</div>
+        <div class="rule-desc">Os resultados sao carregados automaticamente da API oficial <strong>football-data.org</strong> assim que os jogos terminam. Nao e necessaria nenhuma introducao manual.</div>
       </div></div>
       <div class="rule-card"><div class="rule-icon">🔒</div><div><div class="rule-title">Apostas fecham automaticamente</div>
-        <div class="rule-desc">Cada grupo fecha na hora exata do primeiro jogo. Não há intervenção manual — é automático.</div>
+        <div class="rule-desc">Cada grupo fecha na hora exata do primeiro jogo, sem intervencao manual.</div>
       </div></div>
-      <div class="rule-card"><div class="rule-icon">⚖️</div><div><div class="rule-title">Desempate</div>
-        <div class="rule-desc">Em caso de empate, ganha quem apostou em seleções que chegaram mais longe.</div>
+      <div class="rule-card"><div class="rule-icon">🧮</div><div><div class="rule-title">Maximo por selecao</div>
+        <div class="rule-desc">Campiao que ganha tudo: <strong>1+1+2+2+2+3+3 = <span style="color:var(--gold)">14 pontos</span></strong></div>
       </div></div>
     </div>
+
   </div>
 
-  <!-- BOTTOM NAV -->
   <nav class="bottom-nav">
-    <a class="nav-btn" id="nav-apostas"    href="#apostas"><i class="ti ti-list-check"></i>Apostas</a>
-    <a class="nav-btn" id="nav-resultados" href="#resultados" style="display:none"><i class="ti ti-tournament"></i>Resultados</a>
-    <a class="nav-btn" id="nav-ranking"    href="#ranking"><i class="ti ti-trophy"></i>Ranking</a>
-    <a class="nav-btn" id="nav-regras"     href="#regras"><i class="ti ti-book"></i>Regras</a>
+    <a class="nav-btn" id="nav-apostas" href="#apostas"><i class="ti ti-list-check"></i>Apostas</a>
+    <a class="nav-btn" id="nav-ranking" href="#ranking"><i class="ti ti-trophy"></i>Ranking</a>
+    <a class="nav-btn" id="nav-regras"  href="#regras"><i class="ti ti-book"></i>Regras</a>
   </nav>
 </div>
 
@@ -120,14 +118,14 @@
     </div>
     <div class="form-group"><label>Nome</label><input type="text" id="perfil-name-input"></div>
     <div class="form-group"><label>Cor do avatar</label><div class="color-picker" id="color-picker"></div></div>
-    <button class="btn-primary" onclick="savePerfil(currentProfile, p => { currentProfile=p; renderRanking(); })" style="margin-top:.5rem">Guardar</button>
+    <button class="btn-primary" onclick="savePerfil(currentProfile, p=>{currentProfile=p;renderRanking();})" style="margin-top:.5rem">Guardar</button>
   </div>
 </div>
 
-<!-- MODAL: Definições do grupo -->
+<!-- MODAL: Definicoes do grupo -->
 <div id="modal-settings" class="modal-overlay" style="display:none">
   <div class="modal-card">
-    <div class="modal-header"><span>Definições do Grupo</span><button onclick="closeModal('modal-settings')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-header"><span>Definicoes do Grupo</span><button onclick="closeModal('modal-settings')"><i class="ti ti-x"></i></button></div>
     <div id="settings-content"></div>
   </div>
 </div>
@@ -142,145 +140,152 @@ let currentUser    = null;
 let currentProfile = null;
 let betGroup       = null;
 let isAdmin        = false;
-let allWcGroups    = [];
-let allTeams       = [];
-let myPicks        = {};  // { wc_group_id: [{team_id, pick_order}] }
+let wcGroups       = [];    // [{id, label, teams:[{id,name,flag_code,crest}]}]
+let myPicks        = {};    // { wc_group_id: [{team_id, pick_order}] }
 let allPicks       = [];
 let groupMembers   = [];
-let allResults     = {};
+let wcResults      = {};    // { faseId: Set<teamId> } - vem da API
+let lastResultsFetch = 0;
 let realtimeSubs   = [];
 
 // -- BOOT -------------------------------------------
 (async () => {
   const params = new URLSearchParams(window.location.search);
   const bgId   = params.get('id');
-  if (!bgId) { window.location.href = 'lobby.html'; return; }
+  if (!bgId) { window.location.href='lobby.html'; return; }
 
   currentUser = await requireAuth();
   if (!currentUser) return;
 
-  // Load everything in parallel
-  const [profileRes, staticRes, memberRes, picksRes, resultsRes] = await Promise.all([
+  setLoadingMsg('A carregar perfil...');
+
+  const [profileRes, memberRes, picksRes] = await Promise.all([
     sb.from('profiles').select('*').eq('id', currentUser.id).single(),
-    Promise.all([
-      sb.from('wc_groups').select('*').order('id'),
-      sb.from('teams').select('*').order('wc_group_id').order('name'),
-    ]),
     sb.from('bet_group_members').select('*, bet_groups(*), profiles(*)').eq('bet_group_id', bgId),
     sb.from('picks').select('*').eq('bet_group_id', bgId),
-    sb.from('results').select('*'),
   ]);
 
   currentProfile = profileRes.data || await getOrCreateProfile(currentUser);
   currentProfile.email = currentUser.email;
 
-  allWcGroups = staticRes[0].data || [];
-  allTeams    = staticRes[1].data || [];
-
-  // Check membership
-  const myMembership = (memberRes.data || []).find(m => m.profiles?.id === currentUser.id);
-  if (!myMembership) { window.location.href = 'lobby.html'; return; }
+  const myMembership = (memberRes.data||[]).find(m => m.profiles?.id === currentUser.id);
+  if (!myMembership) { window.location.href='lobby.html'; return; }
 
   betGroup     = myMembership.bet_groups;
   isAdmin      = myMembership.is_admin;
-  groupMembers = memberRes.data || [];
-  allPicks     = picksRes.data || [];
+  groupMembers = memberRes.data||[];
+  allPicks     = picksRes.data||[];
 
-  // My picks
+  // Parse my picks
   allPicks.filter(p => p.user_id === currentUser.id).forEach(p => {
     if (!myPicks[p.wc_group_id]) myPicks[p.wc_group_id] = [];
     myPicks[p.wc_group_id].push({ team_id: p.team_id, pick_order: p.pick_order });
   });
   Object.keys(myPicks).forEach(g => myPicks[g].sort((a,b) => a.pick_order - b.pick_order));
 
-  // Results
-  FASES.forEach(f => allResults[f.id] = new Set());
-  (resultsRes.data || []).forEach(r => allResults[r.phase_id]?.add(r.team_id));
+  setLoadingMsg('A carregar grupos do Mundial 2026...');
 
-  // UI setup
-  document.title = `${betGroup.name} · Santa Luzia Bets`;
-  document.getElementById('group-name').textContent = betGroup.name;
-  document.getElementById('group-meta').textContent = `${groupMembers.length} membro${groupMembers.length!==1?'s':''}`;
-  setupUserMenu(currentProfile, currentUser);
-
-  if (isAdmin) {
-    document.getElementById('tab-resultados').style.display = '';
-    document.getElementById('nav-resultados').style.display = '';
+  // Buscar grupos da API
+  try {
+    wcGroups = await fetchWCGroups();
+  } catch(e) {
+    console.error('Erro API grupos:', e);
+    showToast('Erro ao carregar grupos da API', true);
   }
 
-  document.getElementById('settings-link').onclick = (e) => { e.preventDefault(); openSettings(); };
+  setLoadingMsg('A verificar resultados...');
+
+  // Buscar resultados da API
+  try {
+    wcResults = await fetchWCResults();
+  } catch(e) {
+    console.error('Erro API resultados:', e);
+    wcResults = {};
+    FASES.forEach(f => wcResults[f.id] = new Set());
+  }
+
+  // UI
+  document.title = `${betGroup.name} - Santa Luzia Bets`;
+  document.getElementById('group-name').textContent = betGroup.name;
+  document.getElementById('group-meta').textContent = `${groupMembers.length} membro${groupMembers.length!==1?'s':''}`;
+  setupUserMenu(currentProfile);
+  document.getElementById('settings-link').onclick = e => { e.preventDefault(); openSettings(); };
 
   setupRealtime(bgId);
-  buildGroupsDOM();  // build once
-  updateAllGroups(); // apply state
+  buildGroupsDOM();
+  updateAllGroups();
   renderLockNotice();
-  updateConfirmBtn();
 
-  // Hash-based navigation
   window.addEventListener('hashchange', onHashChange);
   onHashChange();
 
   document.getElementById('loading-screen').style.display = 'none';
   document.getElementById('main').style.display = 'block';
 
-  // Countdown every 30s
-  setInterval(() => { allWcGroups.forEach(g => updateGroupUI(g.id)); renderLockNotice(); }, 30000);
+  // Atualizar countdown cada 30s
+  setInterval(() => { wcGroups.forEach(g => updateGroupUI(g.id)); renderLockNotice(); }, 30000);
 })();
 
-// -- HASH NAVIGATION --------------------------------
-function onHashChange() {
-  const hash = window.location.hash.replace('#','') || 'apostas';
-  const tabs  = ['apostas','resultados','ranking','regras'];
-  const valid = tabs.includes(hash) ? hash : 'apostas';
-
-  // Non-admins redirected away from resultados
-  const tab = (valid === 'resultados' && !isAdmin) ? 'apostas' : valid;
-
-  tabs.forEach(t => {
-    document.getElementById('screen-' + t).style.display = t === tab ? 'block' : 'none';
-    document.getElementById('tab-'    + t)?.classList.toggle('active', t === tab);
-    document.getElementById('nav-'    + t)?.classList.toggle('active', t === tab);
-  });
-
-  if (tab === 'resultados') renderResultados();
-  if (tab === 'ranking')    renderRanking();
+function setLoadingMsg(msg) {
+  const el = document.getElementById('loading-msg');
+  if (el) el.textContent = msg;
 }
 
-// -- REALTIME ---------------------------------------
+// -- HASH NAV ----------------------------------------
+function onHashChange() {
+  const hash  = window.location.hash.replace('#','') || 'apostas';
+  const tabs  = ['apostas','ranking','regras'];
+  const tab   = tabs.includes(hash) ? hash : 'apostas';
+  tabs.forEach(t => {
+    document.getElementById('screen-'+t).style.display = t===tab ? 'block' : 'none';
+    document.getElementById('tab-'+t)?.classList.toggle('active', t===tab);
+    document.getElementById('nav-'+t)?.classList.toggle('active', t===tab);
+  });
+  if (tab === 'ranking') renderRanking();
+}
+
+// -- REALTIME ----------------------------------------
 function setupRealtime(bgId) {
-  const pSub = sb.channel('p-' + bgId)
+  const pSub = sb.channel('p-'+bgId)
     .on('postgres_changes', { event:'*', schema:'public', table:'picks', filter:`bet_group_id=eq.${bgId}` }, async () => {
       const { data } = await sb.from('picks').select('*').eq('bet_group_id', bgId);
-      allPicks = data || [];
-      if (window.location.hash === '#ranking') renderRanking();
+      allPicks = data||[];
+      if (window.location.hash==='#ranking') renderRanking();
     }).subscribe();
+  realtimeSubs = [pSub];
+}
 
-  const rSub = sb.channel('r-global')
-    .on('postgres_changes', { event:'*', schema:'public', table:'results' }, async () => {
-      const { data } = await sb.from('results').select('*');
-      FASES.forEach(f => allResults[f.id] = new Set());
-      (data || []).forEach(r => allResults[r.phase_id]?.add(r.team_id));
-      if (window.location.hash === '#resultados') renderResultados();
-      if (window.location.hash === '#ranking')    renderRanking();
-      showToast('📊 Resultados atualizados!');
-    }).subscribe();
-
-  realtimeSubs = [pSub, rSub];
+// -- RESULTADOS DA API --------------------------------
+async function refreshResults() {
+  const btn = document.getElementById('refresh-btn');
+  if (btn) { btn.style.opacity='0.5'; btn.style.pointerEvents='none'; }
+  try {
+    wcResults = await fetchWCResults();
+    showToast('Resultados atualizados!');
+    if (window.location.hash==='#ranking') renderRanking();
+  } catch(e) {
+    showToast('Erro ao atualizar resultados', true);
+  }
+  if (btn) { btn.style.opacity=''; btn.style.pointerEvents=''; }
 }
 
 // -- APOSTAS: build DOM once -------------------------
 function buildGroupsDOM() {
   const container = document.getElementById('groups-container');
   container.innerHTML = '';
-  allWcGroups.forEach(g => {
-    const teams = allTeams.filter(t => t.wc_group_id === g.id);
-    const div   = document.createElement('div');
+  wcGroups.forEach(g => {
+    const div = document.createElement('div');
     div.className = 'card';
     div.innerHTML = `
       <div class="card-header" onclick="toggleCard('gb-${g.id}','gc-${g.id}')">
         <div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0">
           <span class="bebas" style="font-size:16px;color:var(--gold);flex-shrink:0">GRUPO ${g.id}</span>
-          <span style="display:flex;gap:3px;align-items:center">${teams.map(t=>flagImg(t.flag_code,18)).join('')}</span>
+          <span style="display:flex;gap:4px;align-items:center">
+            ${g.teams.map(t => t.crest
+              ? `<img src="${t.crest}" width="20" height="20" style="object-fit:contain" onerror="this.src=''" alt="${t.shortName}">`
+              : flagImg(t.flag_code, 18)
+            ).join('')}
+          </span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
           <span id="gbadge-${g.id}"></span>
@@ -290,49 +295,48 @@ function buildGroupsDOM() {
       <div class="card-body" id="gb-${g.id}">
         <div id="gm-${g.id}" style="font-size:11px;color:var(--muted);margin-bottom:9px"></div>
         <div class="teams-grid">
-          ${teams.map(t=>`
+          ${g.teams.map(t => `
             <button class="team-btn" id="tb-${g.id}-${t.id}" onclick="pickTeam('${g.id}',${t.id})">
-              ${flagImg(t.flag_code,24)}
+              ${t.crest
+                ? `<img src="${t.crest}" width="24" height="24" style="object-fit:contain;flex-shrink:0" onerror="this.src=''" alt="">`
+                : flagImg(t.flag_code, 24)
+              }
               <span style="flex:1;font-size:12px;margin-left:2px">${t.name}</span>
               <span class="order-badge" id="ob-${g.id}-${t.id}"></span>
             </button>`).join('')}
         </div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px">
-          <span style="color:var(--gold)">●</span> 1.º e 2.º passam sempre &nbsp;|&nbsp;
-          <span style="color:#7ab8f5">●</span> 3.º só se for top-8
+          <span style="color:var(--gold)">&#9679;</span> 1.o e 2.o passam sempre &nbsp;|&nbsp;
+          <span style="color:#7ab8f5">&#9679;</span> 3.o so se for top-8
         </div>
       </div>`;
     container.appendChild(div);
   });
-  // Open first group with no picks
-  const first = allWcGroups.find(g => !myPicks[g.id]?.length);
-  if (first) toggleCard('gb-' + first.id, 'gc-' + first.id);
+  const first = wcGroups.find(g => !myPicks[g.id]?.length);
+  if (first) toggleCard('gb-'+first.id, 'gc-'+first.id);
 }
 
-function updateAllGroups() { allWcGroups.forEach(g => updateGroupUI(g.id)); }
+function updateAllGroups() { wcGroups.forEach(g => updateGroupUI(g.id)); }
 
-// Only update dynamic parts — never touch flag images
 function updateGroupUI(id) {
   const picks  = myPicks[id] || [];
   const locked = isGroupLocked(id);
-  const teams  = allTeams.filter(t => t.wc_group_id === id);
+  const group  = wcGroups.find(g => g.id === id);
+  if (!group) return;
 
-  // Badge (separate element from chevron)
-  const badge = document.getElementById('gbadge-' + id);
+  const badge = document.getElementById('gbadge-'+id);
   if (badge) {
-    if (locked)          badge.innerHTML = `<span class="badge badge-err">🔒 Fechado</span>`;
-    else if (picks.length) badge.innerHTML = `<span class="badge badge-ok">✓ ${picks.length}</span> <span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
-    else                 badge.innerHTML = `<span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
+    if (locked)           badge.innerHTML = `<span class="badge badge-err">&#128274; Fechado</span>`;
+    else if (picks.length) badge.innerHTML = `<span class="badge badge-ok">&#10003; ${picks.length}</span> <span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
+    else                  badge.innerHTML = `<span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
   }
 
-  // Hint text
-  const gm = document.getElementById('gm-' + id);
+  const gm = document.getElementById('gm-'+id);
   if (gm) gm.innerHTML = locked
-    ? `🔒 Apostas fechadas — jogo começou a <strong>${kickoffLabel(id)}</strong>`
-    : `Seleciona até 3 · ⏱ <strong>${timeUntilLock(id)}</strong>`;
+    ? `&#128274; Apostas fechadas &mdash; jogo comecou a <strong>${kickoffLabel(id)}</strong>`
+    : `Seleciona ate 3 &middot; <strong>${timeUntilLock(id)}</strong>`;
 
-  // Team buttons — only update class/disabled/badge
-  teams.forEach(t => {
+  group.teams.forEach(t => {
     const btn = document.getElementById(`tb-${id}-${t.id}`);
     const ob  = document.getElementById(`ob-${id}-${t.id}`);
     if (!btn) return;
@@ -340,13 +344,13 @@ function updateGroupUI(id) {
     const sel = pi !== -1;
     btn.classList.toggle('selected', sel);
     btn.disabled = locked;
-    if (ob) { ob.style.display = sel ? '' : 'none'; ob.textContent = sel ? `#${picks[pi].pick_order}` : ''; }
+    if (ob) { ob.style.display=sel?'':'none'; ob.textContent=sel?`#${picks[pi].pick_order}`:''; }
   });
 }
 
 function toggleCard(bodyId, chevId) {
-  const b = document.getElementById(bodyId), c = document.getElementById(chevId);
-  if (!b || !c) return;
+  const b=document.getElementById(bodyId), c=document.getElementById(chevId);
+  if (!b||!c) return;
   b.classList.toggle('open');
   c.classList.toggle('open', b.classList.contains('open'));
 }
@@ -354,130 +358,83 @@ function toggleCard(bodyId, chevId) {
 function renderLockNotice() {
   const el = document.getElementById('lock-notice');
   if (!el) return;
-  const upcoming = allWcGroups
-    .filter(g => !isGroupLocked(g.id) && GROUP_KICKOFFS[g.id])
-    .sort((a,b) => GROUP_KICKOFFS[a.id] - GROUP_KICKOFFS[b.id]);
+  const upcoming = wcGroups.filter(g => !isGroupLocked(g.id) && GROUP_KICKOFFS[g.id])
+    .sort((a,b) => GROUP_KICKOFFS[a.id]-GROUP_KICKOFFS[b.id]);
   if (!upcoming.length) {
-    el.innerHTML = `<div class="nota" style="background:rgba(232,85,85,0.07);border-color:rgba(232,85,85,0.2);margin-bottom:10px"><span>🔒</span><span style="color:var(--red)"><strong>Apostas encerradas</strong> — todos os grupos já começaram.</span></div>`;
+    el.innerHTML = `<div class="nota" style="background:rgba(232,85,85,0.07);border-color:rgba(232,85,85,0.2);margin-bottom:10px">
+      <span>&#128274;</span><span style="color:var(--red)"><strong>Apostas encerradas</strong> &mdash; todos os grupos ja comecaram.</span></div>`;
     return;
   }
   const next = upcoming[0];
-  const soon = (GROUP_KICKOFFS[next.id] - new Date()) < 86400000;
+  const soon = (GROUP_KICKOFFS[next.id]-new Date()) < 86400000;
   el.innerHTML = `<div class="nota" style="${soon?'background:rgba(245,200,66,0.07);border-color:rgba(245,200,66,0.25)':''};margin-bottom:10px">
-    <span>${soon?'⚠️':'⏱'}</span>
+    <span>${soon?'&#9888;':'&#8987;'}</span>
     <span>${soon
-      ? `<strong style="color:var(--gold)">Grupo ${next.id} fecha em breve!</strong> ${timeUntilLock(next.id)} · ${kickoffLabel(next.id)}`
-      : `Próximo a fechar: <strong>Grupo ${next.id}</strong> — ${timeUntilLock(next.id)} · ${kickoffLabel(next.id)}`
-    }</span>
-  </div>`;
+      ? `<strong style="color:var(--gold)">Grupo ${next.id} fecha em breve!</strong> ${timeUntilLock(next.id)} &middot; ${kickoffLabel(next.id)}`
+      : `Proximo a fechar: <strong>Grupo ${next.id}</strong> &mdash; ${timeUntilLock(next.id)} &middot; ${kickoffLabel(next.id)}`
+    }</span></div>`;
 }
 
 async function pickTeam(wcGroupId, teamId) {
-  if (isGroupLocked(wcGroupId)) { showToast('🔒 Apostas fechadas para este grupo', true); return; }
+  if (isGroupLocked(wcGroupId)) { showToast('&#128274; Apostas fechadas para este grupo', true); return; }
   const picks = myPicks[wcGroupId] || [];
   const ei    = picks.findIndex(p => p.team_id === teamId);
   if (ei !== -1) {
-    await sb.from('picks').delete().eq('user_id', currentUser.id).eq('team_id', teamId).eq('bet_group_id', betGroup.id);
+    await sb.from('picks').delete().eq('user_id',currentUser.id).eq('team_id',teamId).eq('bet_group_id',betGroup.id);
     picks.splice(ei, 1);
-    picks.forEach((p,i) => p.pick_order = i + 1);
+    picks.forEach((p,i) => p.pick_order=i+1);
   } else {
-    if (picks.length >= 3) { showToast('Máximo 3 seleções por grupo'); return; }
-    const order = picks.length + 1;
-    const { error } = await sb.from('picks').insert({ user_id: currentUser.id, bet_group_id: betGroup.id, team_id: teamId, wc_group_id: wcGroupId, pick_order: order });
-    if (error) { showToast('Erro ao guardar', true); return; }
-    picks.push({ team_id: teamId, pick_order: order });
+    if (picks.length >= 3) { showToast('Maximo 3 selecoes por grupo'); return; }
+    const order = picks.length+1;
+    const { error } = await sb.from('picks').insert({ user_id:currentUser.id, bet_group_id:betGroup.id, team_id:teamId, wc_group_id:wcGroupId, pick_order:order });
+    if (error) { showToast('Erro ao guardar',true); return; }
+    picks.push({ team_id:teamId, pick_order:order });
   }
   myPicks[wcGroupId] = picks;
   updateGroupUI(wcGroupId);
-  updateConfirmBtn();
 }
 
-function updateConfirmBtn() {
-  const btn = document.getElementById('confirm-btn');
-  const n   = allWcGroups.filter(g => myPicks[g.id]?.length >= 2).length;
-  btn.disabled = false;
-  btn.textContent = n > 0 ? `✅ ${n}/12 grupos com apostas — guardado automaticamente` : 'As apostas guardam-se automaticamente';
-}
-
-// -- RESULTADOS -------------------------------------
-function renderResultados() {
-  if (!isAdmin) return;
-  const c = document.getElementById('resultados-container');
-  c.innerHTML = '';
-  FASES.forEach((fase, fi) => {
-    const prev     = fi > 0 ? FASES[fi-1] : null;
-    const eligible = prev
-      ? allTeams.filter(t => allResults[prev.id]?.has(t.id))
-      : [...new Map(allTeams.map(t=>[t.id,t])).values()];
-    const passed   = allResults[fase.id] || new Set();
-    const sec = document.createElement('div');
-    sec.className = 'fase-section';
-    sec.innerHTML = `
-      <div class="fase-header">
-        <span class="fase-label">${fase.label}</span>
-        <span style="font-size:11px;color:var(--muted)">+${fase.pts}pt${fase.pts>1?'s':''}</span>
-        <span style="margin-left:auto;font-size:12px;font-weight:600;color:${passed.size>fase.max?'var(--red)':passed.size===fase.max?'var(--gl)':'var(--muted)'}">
-          ${passed.size}/${fase.max}
-        </span>
-      </div>
-      ${!eligible.length&&fi>0?`<div style="font-size:12px;color:var(--muted);padding:8px 0;font-style:italic">Introduz primeiro os resultados da fase anterior.</div>`:''}
-      <div id="fl-${fase.id}"></div>`;
-    c.appendChild(sec);
-    const list = document.getElementById('fl-' + fase.id);
-    eligible.forEach(t => {
-      const ok  = passed.has(t.id);
-      const bets = allPicks.filter(p => p.team_id === t.id).length;
-      const row = document.createElement('div');
-      row.className = `result-row ${ok?'passou':''}`;
-      row.innerHTML = `<div class="status-dot"></div>${flagImg(t.flag_code,22)}<span style="flex:1;font-size:13px;margin-left:4px">${t.name}</span>${bets?`<span style="font-size:11px;color:var(--muted)">${bets} ap.</span>`:''}<span class="pts-chip">+${fase.pts}pt${fase.pts>1?'s':''}</span>`;
-      row.onclick = () => toggleResult(fase.id, t.id, fase.max);
-      list.appendChild(row);
-    });
-  });
-}
-
-async function toggleResult(phaseId, teamId, max) {
-  const set  = allResults[phaseId];
-  const isIn = set.has(teamId);
-  if (isIn) {
-    const idx = FASES.findIndex(f => f.id === phaseId);
-    const rem = FASES.slice(idx).map(f => f.id);
-    await sb.from('results').delete().in('phase_id', rem).eq('team_id', teamId);
-    rem.forEach(pid => allResults[pid]?.delete(teamId));
-  } else {
-    if (set.size >= max) { showToast(`Máximo ${max} equipa${max>1?'s':''}`); return; }
-    const { error } = await sb.from('results').insert({ phase_id: phaseId, team_id: teamId, recorded_by: currentUser.id });
-    if (error && error.code !== '23505') { showToast('Erro', true); return; }
-    set.add(teamId);
-  }
-  renderResultados();
-}
-
-// -- RANKING ----------------------------------------
-function calcScore(teamIds) {
-  return teamIds.reduce((pts, tid) => pts + FASES.reduce((s,f) => s + (allResults[f.id]?.has(tid) ? f.pts : 0), 0), 0);
+// -- RANKING -----------------------------------------
+function calcScore(pickedTeamIds) {
+  return pickedTeamIds.reduce((pts, tid) =>
+    pts + FASES.reduce((s,f) => s + (wcResults[f.id]?.has(tid) ? f.pts : 0), 0), 0);
 }
 
 function renderRanking() {
   const players = groupMembers.map(m => {
     const prof    = m.profiles;
-    const teamIds = [...new Set(allPicks.filter(p => p.user_id === prof.id).map(p => p.team_id))];
-    return { ...prof, score: calcScore(teamIds), teamIds, isMe: prof.id === currentUser.id, is_admin: m.is_admin };
-  }).sort((a,b) => b.score - a.score || (a.isMe ? -1 : 1));
+    const teamIds = [...new Set(allPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
+    return { ...prof, score:calcScore(teamIds), teamIds, isMe:prof.id===currentUser.id, is_admin:m.is_admin };
+  }).sort((a,b) => b.score-a.score || (a.isMe?-1:1));
 
   const me  = players.find(p => p.isMe);
-  const max = Math.max(...players.map(p => p.score), 1);
+  const max = Math.max(...players.map(p=>p.score),1);
 
-  document.getElementById('score-box').innerHTML = me ? `
-    <div class="score-box">
-      <div class="big-pts">${me.score}</div>
-      <div>
-        <div style="font-size:14px;font-weight:600">A tua pontuação</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px">${me.teamIds.length} seleções apostadas</div>
-        <div style="font-size:11px;color:var(--muted);margin-top:2px">Máx. possível: ${me.teamIds.length*14} pts</div>
-      </div>
-    </div>` : '';
+  // Score box
+  document.getElementById('score-box').innerHTML = me ? `<div class="score-box">
+    <div class="big-pts">${me.score}</div>
+    <div>
+      <div style="font-size:14px;font-weight:600">A tua pontuacao</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${me.teamIds.length} selecoes apostadas</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Max. possivel: ${me.teamIds.length*14} pts</div>
+    </div>
+  </div>` : '';
 
+  // API status
+  const hasResults = FASES.some(f => wcResults[f.id]?.size > 0);
+  const statusEl = document.getElementById('api-status');
+  if (statusEl) {
+    if (hasResults) {
+      const totalPassed = FASES.reduce((n,f) => n+(wcResults[f.id]?.size||0), 0);
+      statusEl.style.display='flex';
+      statusEl.innerHTML=`<span>&#128200;</span><span>Resultados em direto via football-data.org &mdash; <strong>${totalPassed}</strong> equipas apuradas ate agora. <a onclick="refreshResults()" style="color:var(--gold);cursor:pointer">Atualizar</a></span>`;
+    } else {
+      statusEl.style.display='flex';
+      statusEl.innerHTML=`<span>&#8987;</span><span>Os resultados sao atualizados automaticamente quando os jogos terminarem. <a onclick="refreshResults()" style="color:var(--gold);cursor:pointer">Verificar agora</a></span>`;
+    }
+  }
+
+  // List
   document.getElementById('ranking-list').innerHTML = players.map((p,i) => {
     const pc = i===0?'p1':i===1?'p2':i===2?'p3':'';
     return `<div class="ranking-row">
@@ -486,8 +443,8 @@ function renderRanking() {
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap">
           <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.display_name}</span>
-          ${p.isMe?'<span style="font-size:10px;color:var(--gold)">● tu</span>':''}
-          ${p.is_admin?'<span style="font-size:10px;color:var(--muted)">🛡</span>':''}
+          ${p.isMe?'<span style="font-size:10px;color:var(--gold)">&#9679; tu</span>':''}
+          ${p.is_admin?'<span style="font-size:10px;color:var(--muted)">&#128737;</span>':''}
         </div>
         <div class="progress-bar" style="width:100px"><div class="progress-fill" style="width:${Math.round(p.score/max*100)}%"></div></div>
       </div>
@@ -499,105 +456,116 @@ function renderRanking() {
   }).join('') || '<div style="padding:1rem;text-align:center;color:var(--muted);font-size:13px">Nenhum jogador ainda.</div>';
 
   // Invite
-  const inviteUrl = `${location.origin}${'/lobby.html'}?join=${betGroup.invite_code}`;
+  const inviteUrl = `${location.origin}/lobby.html?join=${betGroup.invite_code}`;
   document.getElementById('invite-section').innerHTML = `
     <div class="invite-code-box">
       <span class="invite-code">${betGroup.invite_code}</span>
-      <span class="invite-code-sub">Código de convite</span>
+      <span class="invite-code-sub">Codigo de convite</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn-outline" style="padding:10px;font-size:13px" onclick="navigator.clipboard.writeText('${betGroup.invite_code}').then(()=>showToast('🔑 Código copiado!'))"><i class="ti ti-copy"></i> Código</button>
-      <button class="btn-outline" style="padding:10px;font-size:13px" onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>showToast('🔗 Link copiado!'))"><i class="ti ti-link"></i> Link</button>
+      <button class="btn-outline" style="padding:10px;font-size:13px"
+        onclick="navigator.clipboard.writeText('${betGroup.invite_code}').then(()=>showToast('Codigo copiado!'))">
+        <i class="ti ti-copy"></i> Codigo
+      </button>
+      <button class="btn-outline" style="padding:10px;font-size:13px"
+        onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>showToast('Link copiado!'))">
+        <i class="ti ti-link"></i> Link
+      </button>
     </div>`;
 
   // My picks summary
-  document.getElementById('picks-summary').innerHTML = allWcGroups.map(g => {
+  document.getElementById('picks-summary').innerHTML = wcGroups.map(g => {
     const gp    = (myPicks[g.id]||[]).sort((a,b)=>a.pick_order-b.pick_order);
-    const teams = gp.map(p=>allTeams.find(t=>t.id===p.team_id)).filter(Boolean);
+    const teams = gp.map(p => g.teams.find(t=>t.id===p.team_id)).filter(Boolean);
     return `<div class="stat-row">
       <span class="label">Grupo ${g.id}</span>
       <span style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
-        ${teams.length ? teams.map((t,i)=>`<span style="display:flex;align-items:center;gap:5px">${flagImg(t.flag_code,16)}<span>${t.name}</span>${i===2?'<span style="font-size:10px;color:var(--muted)">(3.º?)</span>':''}</span>`).join('') : '<span style="color:var(--muted)">—</span>'}
+        ${teams.length ? teams.map((t,i)=>`
+          <span style="display:flex;align-items:center;gap:5px">
+            ${t.crest ? `<img src="${t.crest}" width="16" height="16" style="object-fit:contain">` : flagImg(t.flag_code,16)}
+            <span>${t.name}</span>
+            ${i===2?'<span style="font-size:10px;color:var(--muted)">(3.o?)</span>':''}
+          </span>`).join('') : '<span style="color:var(--muted)">-</span>'}
       </span>
     </div>`;
   }).join('');
 }
 
-// -- SETTINGS ---------------------------------------
+// -- SETTINGS ----------------------------------------
 function openSettings() {
   document.getElementById('user-menu').classList.remove('open');
-  const c = document.getElementById('settings-content');
-
-  c.innerHTML = `
+  const inviteUrl = `${location.origin}/lobby.html?join=${betGroup.invite_code}`;
+  document.getElementById('settings-content').innerHTML = `
     <div class="invite-code-box">
       <span class="invite-code">${betGroup.invite_code}</span>
-      <span class="invite-code-sub">Código de convite</span>
+      <span class="invite-code-sub">Codigo de convite</span>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:1.25rem">
-      <button class="btn-outline" style="padding:10px;font-size:13px" onclick="navigator.clipboard.writeText('${betGroup.invite_code}').then(()=>showToast('🔑 Código copiado!'))"><i class="ti ti-copy"></i> Código</button>
-      <button class="btn-outline" style="padding:10px;font-size:13px" onclick="navigator.clipboard.writeText(location.origin+'/lobby.html?join=${betGroup.invite_code}').then(()=>showToast('🔗 Link copiado!'))"><i class="ti ti-link"></i> Link</button>
+      <button class="btn-outline" style="padding:10px;font-size:13px"
+        onclick="navigator.clipboard.writeText('${betGroup.invite_code}').then(()=>showToast('Codigo copiado!'))">
+        <i class="ti ti-copy"></i> Codigo
+      </button>
+      <button class="btn-outline" style="padding:10px;font-size:13px"
+        onclick="navigator.clipboard.writeText('${inviteUrl}').then(()=>showToast('Link copiado!'))">
+        <i class="ti ti-link"></i> Link
+      </button>
     </div>
     <div class="section-title" style="margin-top:0">Membros (${groupMembers.length})</div>
     <div style="background:var(--card2);border-radius:10px;padding:4px 12px;margin-bottom:1.25rem" id="members-inner">${renderMembersList()}</div>
-    ${isAdmin ? `
+    ${isAdmin?`
     <div class="section-title">Editar grupo</div>
     <div class="form-group"><label>Nome</label><input type="text" id="s-name" value="${betGroup.name}"></div>
-    <div class="form-group"><label>Descrição</label><input type="text" id="s-desc" value="${betGroup.description||''}"></div>
-    <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:.75rem">Guardar</button>` : ''}
+    <div class="form-group"><label>Descricao</label><input type="text" id="s-desc" value="${betGroup.description||''}"></div>
+    <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:.75rem">Guardar</button>`:''}
     <button onclick="leaveGroup()" style="width:100%;background:none;border:.5px solid rgba(232,85,85,0.3);border-radius:10px;padding:11px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:.5rem">
       <i class="ti ti-door-exit"></i> Sair do grupo
     </button>`;
-
   openModal('modal-settings');
 }
 
 function renderMembersList() {
   return groupMembers.map(m => {
-    const prof  = m.profiles;
-    const isMe  = prof.id === currentUser.id;
-    const canT  = isAdmin && !isMe;
+    const prof=m.profiles, isMe=prof.id===currentUser.id, canT=isAdmin&&!isMe;
     return `<div class="member-row">
-      ${avatarEl(prof.display_name, prof.avatar_color, 32, 12)}
+      ${avatarEl(prof.display_name,prof.avatar_color,32,12)}
       <div style="flex:1">
         <div class="member-name">${prof.display_name}${isMe?' <span style="color:var(--muted);font-size:11px">(tu)</span>':''}</div>
-        <div style="font-size:10px;color:${m.is_admin?'var(--gold)':'var(--muted)'}">${m.is_admin?'⚡ Administrador':'Membro'}</div>
+        <div style="font-size:10px;color:${m.is_admin?'var(--gold)':'var(--muted)'}">${m.is_admin?'Administrador':'Membro'}</div>
       </div>
-      ${canT ? `<button onclick="toggleAdmin('${prof.id}',${m.is_admin})"
+      ${canT?`<button onclick="toggleAdmin('${prof.id}',${m.is_admin})"
         style="background:${m.is_admin?'rgba(232,85,85,0.12)':'rgba(245,200,66,0.12)'};color:${m.is_admin?'var(--red)':'var(--gold)'};border:.5px solid ${m.is_admin?'rgba(232,85,85,0.3)':'rgba(245,200,66,0.3)'};border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif">
-        ${m.is_admin?'✕ Remover admin':'⚡ Tornar admin'}
-      </button>` : ''}
+        ${m.is_admin?'Remover admin':'Tornar admin'}
+      </button>`:''}
     </div>`;
   }).join('');
 }
 
 async function toggleAdmin(userId, currently) {
-  const { error } = await sb.from('bet_group_members')
-    .update({ is_admin: !currently })
-    .eq('bet_group_id', betGroup.id).eq('user_id', userId);
-  if (error) { showToast('Erro', true); return; }
-  const m = groupMembers.find(m => m.profiles.id === userId);
-  if (m) m.is_admin = !currently;
+  const { error } = await sb.from('bet_group_members').update({ is_admin:!currently }).eq('bet_group_id',betGroup.id).eq('user_id',userId);
+  if (error) { showToast('Erro',true); return; }
+  const m = groupMembers.find(m=>m.profiles.id===userId);
+  if (m) m.is_admin=!currently;
   document.getElementById('members-inner').innerHTML = renderMembersList();
-  showToast(!currently ? '⚡ Admin adicionado!' : 'Admin removido');
+  showToast(!currently?'Admin adicionado!':'Admin removido');
 }
 
 async function saveSettings() {
-  const name = document.getElementById('s-name')?.value.trim();
-  const desc = document.getElementById('s-desc')?.value.trim();
-  if (!name) { showToast('Nome não pode estar vazio', true); return; }
-  const { error } = await sb.from('bet_groups').update({ name, description: desc||null }).eq('id', betGroup.id);
-  if (error) { showToast('Erro ao guardar', true); return; }
-  betGroup.name = name; betGroup.description = desc;
-  document.getElementById('group-name').textContent = name;
-  document.title = `${name} · Santa Luzia Bets`;
+  const name=document.getElementById('s-name')?.value.trim();
+  const desc=document.getElementById('s-desc')?.value.trim();
+  if (!name) { showToast('Nome nao pode estar vazio',true); return; }
+  const { error } = await sb.from('bet_groups').update({ name, description:desc||null }).eq('id',betGroup.id);
+  if (error) { showToast('Erro ao guardar',true); return; }
+  betGroup.name=name; betGroup.description=desc;
+  document.getElementById('group-name').textContent=name;
+  document.title=`${name} - Santa Luzia Bets`;
   closeModal('modal-settings');
-  showToast('✅ Grupo atualizado!');
+  showToast('Grupo atualizado!');
 }
 
 async function leaveGroup() {
   if (!confirm(`Sair de "${betGroup.name}"? Os teus picks ficam guardados.`)) return;
-  await sb.from('bet_group_members').delete().eq('bet_group_id', betGroup.id).eq('user_id', currentUser.id);
-  window.location.href = 'lobby.html';
+  await sb.from('bet_group_members').delete().eq('bet_group_id',betGroup.id).eq('user_id',currentUser.id);
+  window.location.href='lobby.html';
 }
 </script>
 </body>

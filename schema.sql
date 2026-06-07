@@ -74,6 +74,9 @@ create table if not exists picks (
 );
 
 -- Resultados: partilhados por todos (ou por grupo — aqui partilhados globalmente)
+-- NOTA: A tabela results foi substituida pela API football-data.org
+-- Os resultados sao calculados automaticamente a partir da API
+-- create table results (  -- JA NAO NECESSARIA
 create table if not exists results (
   id serial primary key,
   phase_id text references phases(id),
