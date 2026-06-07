@@ -53,61 +53,23 @@ async function fdFetch(path) {
 
 // Busca grupos e equipas do Mundial 2026
 // Usa /teams que e mais fiavel que /standings para obter os grupos
+// Busca grupos e equipas do Mundial 2026
+// A API devolve standings com group:null — cada elemento do array e um grupo,
+// pela ordem A, B, C... D, E, F, G, H, I, J, K, L
 async function fetchWCGroups() {
-  const data = await fdFetch(`/competitions/WC/teams?season=${WC_SEASON}`);
-  // DEBUG: ver estrutura da resposta
-  console.log('API /teams response:', JSON.stringify(data).slice(0, 500));
-  if (data.teams?.[0]) console.log('First team:', JSON.stringify(data.teams[0]));
-  const groupMap = {};
-
-  for (const team of (data.teams || [])) {
-    // A API devolve group como "Group A", "Group B", etc.
-    const raw = team.group || '';
-    // Suporta "Group A", "GROUP_A", "A"
-    const letter = raw.replace(/^Group\s+/i, '').replace(/^GROUP_/, '').trim();
-    if (!letter || letter.length !== 1) continue;
-
-    if (!groupMap[letter]) groupMap[letter] = [];
-    groupMap[letter].push({
-      id:        team.id,
-      name:      team.name,
-      shortName: team.shortName || team.tla,
-      flag_code: tlaToFlagCode(team.tla, team.name),
-      crest:     team.crest,
-    });
-  }
-
-  const groups = Object.entries(groupMap)
-    .sort(([a],[b]) => a.localeCompare(b))
-    .map(([letter, teams]) => ({
-      id: letter,
-      label: `Grupo ${letter}`,
-      teams,
-    }));
-
-  // Fallback: se a API nao devolver grupos, usar standings
-  if (groups.length === 0) {
-    return fetchWCGroupsFromStandings();
-  }
-
-  return groups;
-}
-
-// Fallback via standings
-async function fetchWCGroupsFromStandings() {
   const data = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
-  // DEBUG: ver estrutura standings
-  console.log('API /standings response:', JSON.stringify(data).slice(0, 500));
-  if (data.standings?.[0]) console.log('First standing:', JSON.stringify(data.standings[0]).slice(0, 300));
-  const groupMap = {};
+  const letters = 'ABCDEFGHIJKL'.split('');
+  const groups  = [];
+  let   gi      = 0; // indice de grupo
 
   for (const standing of (data.standings || [])) {
-    // standings tem type HOME, AWAY, TOTAL - queremos TOTAL
-    // mas se nao houver TOTAL, aceitar qualquer um uma vez por grupo
-    const raw   = standing.group || '';
-    const letter = raw.replace(/^Group\s+/i, '').replace(/^GROUP_/, '').trim();
-    if (!letter || letter.length !== 1) continue;
-    if (groupMap[letter]) continue; // ja temos este grupo
+    // So queremos TOTAL (nao HOME nem AWAY)
+    if (standing.type !== 'TOTAL') continue;
+    // So queremos GROUP_STAGE
+    if (standing.stage !== 'GROUP_STAGE') continue;
+
+    const letter = letters[gi] || String(gi + 1);
+    gi++;
 
     const teams = (standing.table || []).map(row => ({
       id:        row.team.id,
@@ -116,12 +78,13 @@ async function fetchWCGroupsFromStandings() {
       flag_code: tlaToFlagCode(row.team.tla, row.team.name),
       crest:     row.team.crest,
     }));
-    if (teams.length > 0) groupMap[letter] = teams;
+
+    if (teams.length > 0) {
+      groups.push({ id: letter, label: `Grupo ${letter}`, teams });
+    }
   }
 
-  return Object.entries(groupMap)
-    .sort(([a],[b]) => a.localeCompare(b))
-    .map(([letter, teams]) => ({ id: letter, label: `Grupo ${letter}`, teams }));
+  return groups;
 }
 
 // Busca todos os jogos do WC e calcula quem passou cada fase
