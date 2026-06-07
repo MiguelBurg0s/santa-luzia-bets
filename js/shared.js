@@ -55,6 +55,9 @@ async function fdFetch(path) {
 // Usa /teams que e mais fiavel que /standings para obter os grupos
 async function fetchWCGroups() {
   const data = await fdFetch(`/competitions/WC/teams?season=${WC_SEASON}`);
+  // DEBUG: ver estrutura da resposta
+  console.log('API /teams response:', JSON.stringify(data).slice(0, 500));
+  if (data.teams?.[0]) console.log('First team:', JSON.stringify(data.teams[0]));
   const groupMap = {};
 
   for (const team of (data.teams || [])) {
@@ -93,6 +96,9 @@ async function fetchWCGroups() {
 // Fallback via standings
 async function fetchWCGroupsFromStandings() {
   const data = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
+  // DEBUG: ver estrutura standings
+  console.log('API /standings response:', JSON.stringify(data).slice(0, 500));
+  if (data.standings?.[0]) console.log('First standing:', JSON.stringify(data.standings[0]).slice(0, 300));
   const groupMap = {};
 
   for (const standing of (data.standings || [])) {
