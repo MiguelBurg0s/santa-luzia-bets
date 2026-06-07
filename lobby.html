@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="theme-color" content="#0d1f14">
+<title>Santa Luzia Bets · Os meus grupos</title>
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <a href="lobby.html" class="logo">⚽ <span>SANTA LUZIA</span> BETS</a>
+    <div class="user-badge" id="user-badge" onclick="toggleUserMenu()">
+      <div class="rank-avatar" id="header-avatar" style="width:28px;height:28px;font-size:12px"></div>
+      <span id="header-name" style="font-size:13px;font-weight:500"></span>
+      <div id="user-menu" class="user-menu">
+        <div class="user-menu-item" onclick="openPerfil(currentProfile)"><i class="ti ti-user"></i> Perfil</div>
+        <div class="user-menu-item danger" onclick="logout()"><i class="ti ti-logout"></i> Sair</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="content">
+  <div class="section-title">Os meus grupos</div>
+  <div id="groups-list"><div class="spinner"></div></div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem">
+    <button class="btn-action-big" onclick="openModal('modal-create')">
+      <i class="ti ti-plus"></i><span>Criar grupo</span>
+    </button>
+    <button class="btn-action-big" onclick="openModal('modal-join')">
+      <i class="ti ti-door-enter"></i><span>Juntar a grupo</span>
+    </button>
+  </div>
+</div>
+
+<!-- MODAL: Criar grupo -->
+<div id="modal-create" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span>Criar grupo de apostas</span>
+      <button onclick="closeModal('modal-create')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="form-group"><label>Nome do grupo</label><input type="text" id="create-name" placeholder="Ex: Canarinhos FC"></div>
+    <div class="form-group"><label>Descrição (opcional)</label><input type="text" id="create-desc" placeholder="Ex: Grupo do trabalho"></div>
+    <div class="nota" style="margin-top:.5rem"><span>ℹ️</span><span>Ao criar um grupo, tornas-te <strong>administrador</strong> — podes introduzir os resultados das fases.</span></div>
+    <button class="btn-primary" onclick="createGroup()" style="margin-top:1rem">Criar Grupo</button>
+  </div>
+</div>
+
+<!-- MODAL: Juntar a grupo -->
+<div id="modal-join" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span>Juntar a grupo</span>
+      <button onclick="closeModal('modal-join')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="nota"><span>🔑</span><span>Pede o código de 8 letras ao administrador do grupo.</span></div>
+    <div class="form-group" style="margin-top:.75rem">
+      <label>Código do grupo</label>
+      <input type="text" id="join-code" placeholder="Ex: AB3XY7KZ" maxlength="8"
+        style="text-transform:uppercase;letter-spacing:3px;font-size:18px;text-align:center">
+    </div>
+    <div id="join-preview" style="display:none;margin-bottom:.75rem">
+      <div class="nota" style="background:rgba(45,158,88,0.1);border-color:rgba(45,158,88,0.3)">
+        <span>✅</span><span id="join-preview-text"></span>
+      </div>
+    </div>
+    <div id="join-err" class="err-msg"></div>
+    <button class="btn-primary" onclick="joinGroup()">Juntar-me</button>
+  </div>
+</div>
+
+<!-- MODAL: Perfil -->
+<div id="modal-perfil" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header"><span>O meu Perfil</span><button onclick="closeModal('modal-perfil')"><i class="ti ti-x"></i></button></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:1.25rem">
+      <div class="rank-avatar" id="perfil-avatar" style="width:52px;height:52px;font-size:18px"></div>
+      <div><div id="perfil-name" style="font-size:16px;font-weight:600"></div><div id="perfil-email" style="font-size:12px;color:var(--muted)"></div></div>
+    </div>
+    <div class="form-group"><label>Nome de exibição</label><input type="text" id="perfil-name-input"></div>
+    <div class="form-group"><label>Cor do avatar</label><div class="color-picker" id="color-picker"></div></div>
+    <button class="btn-primary" onclick="savePerfil(currentProfile, p => { currentProfile=p; })" style="margin-top:.5rem">Guardar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/shared.js"></script>
+<script>
+let currentUser    = null;
+let currentProfile = null;
+
+(async () => {
+  // Processar token OAuth se vier do redirect do Google
+  if (window.location.hash.includes('access_token') || window.location.search.includes('code=')) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      // Aguardar o Supabase processar o token
+      await new Promise(resolve => {
+        const unsub = sb.auth.onAuthStateChange((event, s) => {
+          if (s) { unsub.data?.subscription?.unsubscribe(); resolve(); }
+        });
+        setTimeout(resolve, 3000); // timeout de segurança
+      });
+    }
+  }
+
+  currentUser = await requireAuth();
+  if (!currentUser) return;
+
+  // Handle invite code in URL
+  const params = new URLSearchParams(window.location.search);
+  const invite  = params.get('join');
+
+  currentProfile = await getOrCreateProfile(currentUser);
+  currentProfile.email = currentUser.email;
+  setupUserMenu(currentProfile, currentUser);
+
+  if (invite) {
+    await handleInviteCode(invite.toUpperCase());
+    window.history.replaceState({}, '', 'lobby.html');
+  }
+
+  await renderGroups();
+
+  // Auto-open join modal if code in URL but group not found
+  document.getElementById('join-code').oninput = async function() {
+    this.value = this.value.toUpperCase();
+    if (this.value.length === 8) await previewJoin(this.value);
+    else document.getElementById('join-preview').style.display = 'none';
+  };
+})();
+
+async function renderGroups() {
+  const { data } = await sb.from('bet_group_members')
+    .select('*, bet_groups(*)')
+    .eq('user_id', currentUser.id)
+    .order('joined_at', { ascending: false });
+
+  const list = document.getElementById('groups-list');
+  const myGroups = (data || []).map(m => ({ ...m.bet_groups, is_admin: m.is_admin }));
+
+  if (!myGroups.length) {
+    list.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+      <div style="font-size:40px;margin-bottom:.75rem">⚽</div>
+      <div style="font-size:14px;font-weight:500;margin-bottom:.5rem">Ainda não tens grupos</div>
+      <div style="font-size:12px">Cria um grupo ou junta-te com um código de convite.</div>
+    </div>`;
+    return;
+  }
+
+  list.innerHTML = myGroups.map(bg => `
+    <a href="group.html?id=${bg.id}" class="bet-group-card">
+      <div class="bet-group-icon">🏆</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:15px;font-weight:600">${bg.name}${bg.is_admin ? '<span class="admin-chip">admin</span>' : ''}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${bg.description || 'Grupo de apostas · Mundial 2026'}</div>
+      </div>
+      <i class="ti ti-chevron-right" style="color:var(--muted);font-size:18px"></i>
+    </a>`).join('');
+}
+
+async function createGroup() {
+  const name = document.getElementById('create-name').value.trim();
+  const desc = document.getElementById('create-desc').value.trim();
+  if (!name) { showToast('Dá um nome ao grupo', true); return; }
+  const { data: bg, error } = await sb.from('bet_groups').insert({ name, description: desc||null, created_by: currentUser.id }).select().single();
+  if (error) { showToast('Erro ao criar grupo', true); return; }
+  await sb.from('bet_group_members').insert({ bet_group_id: bg.id, user_id: currentUser.id, is_admin: true });
+  window.location.href = `group.html?id=${bg.id}`;
+}
+
+async function previewJoin(code) {
+  const { data } = await sb.from('bet_groups').select('*').eq('invite_code', code).single();
+  if (data) {
+    document.getElementById('join-preview-text').textContent = `Grupo encontrado: "${data.name}"`;
+    document.getElementById('join-preview').style.display = 'block';
+    document.getElementById('join-err').classList.remove('show');
+  } else {
+    document.getElementById('join-preview').style.display = 'none';
+  }
+}
+
+async function joinGroup() {
+  const code = document.getElementById('join-code').value.trim().toUpperCase();
+  if (code.length !== 8) { showJoinErr('Código de 8 caracteres.'); return; }
+  const { data: bg } = await sb.from('bet_groups').select('*').eq('invite_code', code).single();
+  if (!bg) { showJoinErr('Código inválido.'); return; }
+  const { data: ex } = await sb.from('bet_group_members').select('id').eq('bet_group_id', bg.id).eq('user_id', currentUser.id).single();
+  if (ex) { window.location.href = `group.html?id=${bg.id}`; return; }
+  const { error } = await sb.from('bet_group_members').insert({ bet_group_id: bg.id, user_id: currentUser.id, is_admin: false });
+  if (error) { showJoinErr('Erro ao entrar.'); return; }
+  window.location.href = `group.html?id=${bg.id}`;
+}
+
+async function handleInviteCode(code) {
+  const { data: bg } = await sb.from('bet_groups').select('*').eq('invite_code', code).single();
+  if (!bg) return;
+  const { data: ex } = await sb.from('bet_group_members').select('id').eq('bet_group_id', bg.id).eq('user_id', currentUser.id).single();
+  if (!ex) {
+    await sb.from('bet_group_members').insert({ bet_group_id: bg.id, user_id: currentUser.id, is_admin: false });
+    showToast(`✅ Entraste em "${bg.name}"!`);
+  }
+  setTimeout(() => window.location.href = `group.html?id=${bg.id}`, 800);
+}
+
+function showJoinErr(msg) { const e=document.getElementById('join-err'); e.textContent=msg; e.classList.add('show'); }
+</script>
+</body>
+</html>
