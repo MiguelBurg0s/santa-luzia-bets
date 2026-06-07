@@ -1,6 +1,6 @@
 // -- CONFIG -----------------------------------------
-const SUPABASE_URL      = 'https://SEU_PROJECT_ID.supabase.co';
-const SUPABASE_ANON_KEY = 'SUA_ANON_KEY_AQUI';
+const SUPABASE_URL     = 'https://viktzbxvylzitbkeahzj.supabase.co';
+const SUPABASE_ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpa3R6Ynh2eWx6aXRia2VhaHpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODI2MDcsImV4cCI6MjA5NjM1ODYwN30.8CrpmEojLiTFn7-WXvNQzdW_nQFYgvUZLWUrZGUvKjE';
 const FD_API_KEY        = 'dff7d036b5ff4867afcb3e01a7dc6ddd';
 const FD_BASE           = 'https://api.football-data.org/v4';
 const WC_SEASON         = 2026;
