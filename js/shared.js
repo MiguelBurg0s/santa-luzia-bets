@@ -1,6 +1,6 @@
 // -- CONFIG -----------------------------------------
-const SUPABASE_URL     = 'https://viktzbxvylzitbkeahzj.supabase.co';
-const SUPABASE_ANON_KEY= 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZpa3R6Ynh2eWx6aXRia2VhaHpqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA3ODI2MDcsImV4cCI6MjA5NjM1ODYwN30.8CrpmEojLiTFn7-WXvNQzdW_nQFYgvUZLWUrZGUvKjE';
+const SUPABASE_URL      = 'https://SEU_PROJECT_ID.supabase.co';
+const SUPABASE_ANON_KEY = 'SUA_ANON_KEY_AQUI';
 const FD_API_KEY        = 'dff7d036b5ff4867afcb3e01a7dc6ddd';
 const FD_BASE           = 'https://api.football-data.org/v4';
 const WC_SEASON         = 2026;
@@ -36,12 +36,18 @@ const STAGE_MAP = {
   'FINAL'          : 'campeao',
 };
 
-// -- FOOTBALL-DATA.ORG API --------------------------
+// -- FOOTBALL-DATA.ORG API (via Supabase Edge Function proxy) --
+// A API nao permite chamadas directas do browser (CORS).
+// Usamos uma Edge Function do Supabase como proxy.
 async function fdFetch(path) {
-  const r = await fetch(`${FD_BASE}${path}`, {
-    headers: { 'X-Auth-Token': FD_API_KEY }
+  const proxyUrl = `${SUPABASE_URL}/functions/v1/football-api?path=${encodeURIComponent(path)}`;
+  const r = await fetch(proxyUrl, {
+    headers: {
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+      'Content-Type': 'application/json',
+    }
   });
-  if (!r.ok) throw new Error(`football-data API error: ${r.status}`);
+  if (!r.ok) throw new Error(`football-data proxy error: ${r.status}`);
   return r.json();
 }
 
