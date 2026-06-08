@@ -17,23 +17,23 @@
       <div class="rank-avatar" id="header-avatar" style="width:28px;height:28px;font-size:12px"></div>
       <span id="header-name" style="font-size:13px;font-weight:500"></span>
       <div id="user-menu" class="user-menu">
-        <div class="user-menu-item" onclick="openPerfil(currentProfile)"><i class="ti ti-user"></i> Perfil</div>
-        <div class="user-menu-item danger" onclick="logout()"><i class="ti ti-logout"></i> Sair</div>
+        <div class="user-menu-item" onclick="openPerfil(currentProfile)"><i class="ti ti-user"></i> <span data-i18n="profile_title_short"></span></div>
+        <div class="user-menu-item danger" onclick="logout()"><i class="ti ti-logout"></i> <span data-i18n="menu_logout"></span></div>
       </div>
     </div>
   </div>
 </div>
 
 <div class="content">
-  <div class="section-title">Os meus grupos</div>
+  <div class="section-title" id="lobby-section-title"></div>
   <div id="groups-list"><div class="spinner"></div></div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:1rem">
     <button class="btn-action-big" onclick="openModal('modal-create')">
-      <i class="ti ti-plus"></i><span>Criar grupo</span>
+      <i class="ti ti-plus"></i><span id="btn-create-label"></span>
     </button>
     <button class="btn-action-big" onclick="openModal('modal-join')">
-      <i class="ti ti-door-enter"></i><span>Juntar a grupo</span>
+      <i class="ti ti-door-enter"></i><span id="btn-join-label"></span>
     </button>
   </div>
 </div>
@@ -42,13 +42,13 @@
 <div id="modal-create" class="modal-overlay" style="display:none">
   <div class="modal-card">
     <div class="modal-header">
-      <span>Criar grupo de apostas</span>
+      <span id="modal-create-title"></span>
       <button onclick="closeModal('modal-create')"><i class="ti ti-x"></i></button>
     </div>
-    <div class="form-group"><label>Nome do grupo</label><input type="text" id="create-name" placeholder="Ex: Canarinhos FC"></div>
-    <div class="form-group"><label>Descrição (opcional)</label><input type="text" id="create-desc" placeholder="Ex: Grupo do trabalho"></div>
+    <div class="form-group"><label id="create-name-label"></label><input type="text" id="create-name" placeholder="Ex: Canarinhos FC"></div>
+    <div class="form-group"><label id="create-desc-label"></label><input type="text" id="create-desc" placeholder="Ex: Grupo do trabalho"></div>
     <div class="nota" style="margin-top:.5rem"><span>ℹ️</span><span>Ao criar um grupo, tornas-te <strong>administrador</strong> — podes introduzir os resultados das fases.</span></div>
-    <button class="btn-primary" onclick="createGroup()" style="margin-top:1rem">Criar Grupo</button>
+    <button class="btn-primary" onclick="createGroup()" style="margin-top:1rem" id="create-submit"></button>
   </div>
 </div>
 
@@ -56,12 +56,12 @@
 <div id="modal-join" class="modal-overlay" style="display:none">
   <div class="modal-card">
     <div class="modal-header">
-      <span>Juntar a grupo</span>
+      <span id="modal-join-title"></span>
       <button onclick="closeModal('modal-join')"><i class="ti ti-x"></i></button>
     </div>
     <div class="nota"><span>🔑</span><span>Pede o código de 8 letras ao administrador do grupo.</span></div>
     <div class="form-group" style="margin-top:.75rem">
-      <label>Código do grupo</label>
+      <label id="join-code-label"></label>
       <input type="text" id="join-code" placeholder="Ex: AB3XY7KZ" maxlength="8"
         style="text-transform:uppercase;letter-spacing:3px;font-size:18px;text-align:center">
     </div>
@@ -71,27 +71,29 @@
       </div>
     </div>
     <div id="join-err" class="err-msg"></div>
-    <button class="btn-primary" onclick="joinGroup()">Juntar-me</button>
+    <button class="btn-primary" onclick="joinGroup()" id="join-submit"></button>
   </div>
 </div>
 
 <!-- MODAL: Perfil -->
 <div id="modal-perfil" class="modal-overlay" style="display:none">
   <div class="modal-card">
-    <div class="modal-header"><span>O meu Perfil</span><button onclick="closeModal('modal-perfil')"><i class="ti ti-x"></i></button></div>
+    <div class="modal-header"><span data-i18n="profile_title"></span><button onclick="closeModal('modal-perfil')"><i class="ti ti-x"></i></button></div>
     <div style="display:flex;align-items:center;gap:14px;margin-bottom:1.25rem">
       <div class="rank-avatar" id="perfil-avatar" style="width:52px;height:52px;font-size:18px"></div>
       <div><div id="perfil-name" style="font-size:16px;font-weight:600"></div><div id="perfil-email" style="font-size:12px;color:var(--muted)"></div></div>
     </div>
-    <div class="form-group"><label>Nome de exibição</label><input type="text" id="perfil-name-input"></div>
-    <div class="form-group"><label>Cor do avatar</label><div class="color-picker" id="color-picker"></div></div>
-    <button class="btn-primary" onclick="savePerfil(currentProfile, p => { currentProfile=p; })" style="margin-top:.5rem">Guardar</button>
+    <div class="form-group"><label data-i18n="profile_name"></label><input type="text" id="perfil-name-input"></div>
+    <div class="form-group"><label data-i18n="profile_color"></label><div class="color-picker" id="color-picker"></div></div>
+    <div class="form-group"><label>Língua / Language</label><div style="display:flex;gap:6px" id="lang-picker"></div></div>
+    <button class="btn-primary" onclick="savePerfil(currentProfile, p => { currentProfile=p; })" style="margin-top:.5rem" data-i18n="profile_save"></button>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/shared.js"></script>
 <script>
 let currentUser    = null;
@@ -148,11 +150,7 @@ async function renderGroups() {
   const myGroups = (data || []).map(m => ({ ...m.bet_groups, is_admin: m.is_admin }));
 
   if (!myGroups.length) {
-    list.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
-      <div style="font-size:40px;margin-bottom:.75rem">⚽</div>
-      <div style="font-size:14px;font-weight:500;margin-bottom:.5rem">Ainda não tens grupos</div>
-      <div style="font-size:12px">Cria um grupo ou junta-te com um código de convite.</div>
-    </div>`;
+    list.innerHTML = `<div style="text-align:center;padding:2.5rem 1rem;color:var(--muted)"><div style="font-size:40px;margin-bottom:.75rem">⚽</div><div style="font-size:14px;font-weight:500;margin-bottom:.5rem">${t('lobby_no_groups')}</div><div style="font-size:12px">${t('lobby_no_groups_sub')}</div></div>`;
     return;
   }
 
@@ -161,7 +159,7 @@ async function renderGroups() {
       <div class="bet-group-icon">🏆</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:600">${bg.name}${bg.is_admin ? '<span class="admin-chip">admin</span>' : ''}</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">${bg.description || 'Grupo de apostas · Mundial 2026'}</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">${bg.description || t('lobby_group_sub')}</div>
       </div>
       <i class="ti ti-chevron-right" style="color:var(--muted);font-size:18px"></i>
     </a>`).join('');
@@ -170,9 +168,9 @@ async function renderGroups() {
 async function createGroup() {
   const name = document.getElementById('create-name').value.trim();
   const desc = document.getElementById('create-desc').value.trim();
-  if (!name) { showToast('Dá um nome ao grupo', true); return; }
+  if (!name) { showToast(t('create_error'), true); return; }
   const { data: bg, error } = await sb.from('bet_groups').insert({ name, description: desc||null, created_by: currentUser.id }).select().single();
-  if (error) { showToast('Erro ao criar grupo', true); return; }
+  if (error) { showToast(t('create_error_db'), true); return; }
   await sb.from('bet_group_members').insert({ bet_group_id: bg.id, user_id: currentUser.id, is_admin: true });
   window.location.href = `group.html?id=${bg.id}`;
 }
@@ -190,13 +188,13 @@ async function previewJoin(code) {
 
 async function joinGroup() {
   const code = document.getElementById('join-code').value.trim().toUpperCase();
-  if (code.length !== 8) { showJoinErr('Código de 8 caracteres.'); return; }
+  if (code.length !== 8) { showJoinErr(t('join_need_8')); return; }
   const { data: bg } = await sb.from('bet_groups').select('*').eq('invite_code', code).single();
-  if (!bg) { showJoinErr('Código inválido.'); return; }
+  if (!bg) { showJoinErr(t('join_invalid')); return; }
   const { data: ex } = await sb.from('bet_group_members').select('id').eq('bet_group_id', bg.id).eq('user_id', currentUser.id).single();
   if (ex) { window.location.href = `group.html?id=${bg.id}`; return; }
   const { error } = await sb.from('bet_group_members').insert({ bet_group_id: bg.id, user_id: currentUser.id, is_admin: false });
-  if (error) { showJoinErr('Erro ao entrar.'); return; }
+  if (error) { showJoinErr(t('join_error')); return; }
   window.location.href = `group.html?id=${bg.id}`;
 }
 
@@ -212,6 +210,52 @@ async function handleInviteCode(code) {
 }
 
 function showJoinErr(msg) { const e=document.getElementById('join-err'); e.textContent=msg; e.classList.add('show'); }
+
+function changeLang(lang) {
+  setLang(lang);
+  applyTranslations();
+  // Re-render group cards with new lang
+  renderGroups();
+}
+
+function selectLangBtn(lang, btn) {
+  // Update visual immediately
+  const picker = document.getElementById('lang-picker');
+  if (picker) {
+    picker.querySelectorAll('button').forEach(b => {
+      const active = b === btn;
+      b.style.border     = `.5px solid ${active ? 'var(--gold)' : 'var(--border2)'}`;
+      b.style.background = active ? 'rgba(245,200,66,0.1)' : 'var(--card2)';
+      b.style.color      = active ? 'var(--gold)' : 'var(--muted)';
+    });
+  }
+  changeLang(lang);
+}
+
+function applyTranslations() {
+  // Generic data-i18n handler
+  document.querySelectorAll('[data-i18n]').forEach(e => { e.textContent = t(e.dataset.i18n); });
+  const el = id => document.getElementById(id);
+  if(el('lobby-section-title')) el('lobby-section-title').textContent = t('lobby_my_groups');
+  if(el('btn-create-label'))    el('btn-create-label').textContent    = t('lobby_create');
+  if(el('btn-join-label'))      el('btn-join-label').textContent      = t('lobby_join');
+  if(el('modal-create-title'))  el('modal-create-title').textContent  = t('create_title');
+  if(el('create-name-label'))   el('create-name-label').textContent   = t('create_name');
+  if(el('create-desc-label'))   el('create-desc-label').textContent   = t('create_desc');
+  if(el('create-submit'))       el('create-submit').textContent       = t('create_btn');
+  if(el('modal-join-title'))    el('modal-join-title').textContent    = t('join_title');
+  if(el('join-code-label'))     el('join-code-label').textContent     = t('join_code_label');
+  if(el('join-submit'))         el('join-submit').textContent         = t('join_btn');
+  // placeholders
+  const jcode = document.getElementById('join-code');
+  if(jcode) jcode.placeholder = t('join_code_ph');
+  const cname = document.getElementById('create-name');
+  if(cname) cname.placeholder = t('create_name_ph');
+  const cdesc = document.getElementById('create-desc');
+  if(cdesc) cdesc.placeholder = t('create_desc_ph');
+}
+
+applyTranslations();
 </script>
 </body>
 </html>

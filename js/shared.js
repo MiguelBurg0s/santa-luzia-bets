@@ -59,86 +59,86 @@ function getWCGroups() {
   // Grupos oficiais do Mundial 2026 (sorteio de dezembro 2025)
   const GROUPS = [
     { id:'A', teams:[
-      { id:769,  name:'Mexico',          tla:'MEX', flag_code:'mx'     },
-      { id:815,  name:'Africa do Sul',   tla:'RSA', flag_code:'za'     },
-      { id:732,  name:'Coreia do Sul',   tla:'KOR', flag_code:'kr'     },
-      { id:798,  name:'Chequia',         tla:'CZE', flag_code:'cz'     },
+      { id:769,  nameKey:'team_Mexico',          tla:'MEX', flag_code:'mx'     },
+      { id:815,  nameKey:'team_SouthAfrica',   tla:'RSA', flag_code:'za'     },
+      { id:732,  nameKey:'team_SouthKorea',   tla:'KOR', flag_code:'kr'     },
+      { id:798,  nameKey:'team_Czechia',         tla:'CZE', flag_code:'cz'     },
     ]},
     { id:'B', teams:[
-      { id:759,  name:'Canada',          tla:'CAN', flag_code:'ca'     },
-      { id:808,  name:'Bosnia-Herzegovina', tla:'BIH', flag_code:'ba'  },
-      { id:8601, name:'Qatar',           tla:'QAT', flag_code:'qa'     },
-      { id:788,  name:'Suica',           tla:'SUI', flag_code:'ch'     },
+      { id:759,  nameKey:'team_Canada',          tla:'CAN', flag_code:'ca'     },
+      { id:808,  nameKey:'team_Bosnia', tla:'BIH', flag_code:'ba'  },
+      { id:8601, nameKey:'team_Qatar',           tla:'QAT', flag_code:'qa'     },
+      { id:788,  nameKey:'team_Switzerland',           tla:'SUI', flag_code:'ch'     },
     ]},
     { id:'C', teams:[
-      { id:764,  name:'Brasil',          tla:'BRA', flag_code:'br'     },
-      { id:1996, name:'Marrocos',        tla:'MAR', flag_code:'ma'     },
-      { id:5765, name:'Haiti',           tla:'HAI', flag_code:'ht'     },
-      { id:833,  name:'Escocia',         tla:'SCO', flag_code:'gb-sct' },
+      { id:764,  nameKey:'team_Brazil',          tla:'BRA', flag_code:'br'     },
+      { id:1996, nameKey:'team_Morocco',        tla:'MAR', flag_code:'ma'     },
+      { id:5765, nameKey:'team_Haiti',           tla:'HAI', flag_code:'ht'     },
+      { id:833,  nameKey:'team_Scotland',         tla:'SCO', flag_code:'gb-sct' },
     ]},
     { id:'D', teams:[
-      { id:768,  name:'EUA',             tla:'USA', flag_code:'us'     },
-      { id:780,  name:'Paraguai',        tla:'PAR', flag_code:'py'     },
-      { id:797,  name:'Australia',       tla:'AUS', flag_code:'au'     },
-      { id:803,  name:'Turquia',         tla:'TUR', flag_code:'tr'     },
+      { id:768,  nameKey:'team_USA',             tla:'USA', flag_code:'us'     },
+      { id:780,  nameKey:'team_Paraguay',        tla:'PAR', flag_code:'py'     },
+      { id:797,  nameKey:'team_Australia',       tla:'AUS', flag_code:'au'     },
+      { id:803,  nameKey:'team_Turkey',         tla:'TUR', flag_code:'tr'     },
     ]},
     { id:'E', teams:[
-      { id:759,  name:'Alemanha',         tla:'GER', flag_code:'de'     },
-      { id:6318, name:'Curcao',          tla:'CUW', flag_code:'cw'     },
-      { id:1761, name:'Costa do Marfim', tla:'CIV', flag_code:'ci'     },
-      { id:762,  name:'Equador',         tla:'ECU', flag_code:'ec'     },
+      { id:759,  nameKey:'team_Germany',         tla:'GER', flag_code:'de'     },
+      { id:6318, nameKey:'team_Curacao',          tla:'CUW', flag_code:'cw'     },
+      { id:1761, nameKey:'team_IvoryCoast', tla:'CIV', flag_code:'ci'     },
+      { id:762,  nameKey:'team_Ecuador',         tla:'ECU', flag_code:'ec'     },
     ]},
     { id:'F', teams:[
-      { id:786,  name:'Paises Baixos',   tla:'NED', flag_code:'nl'     },
-      { id:796,  name:'Japao',           tla:'JPN', flag_code:'jp'     },
-      { id:790,  name:'Suecia',          tla:'SWE', flag_code:'se'     },
-      { id:803,  name:'Tunisia',         tla:'TUN', flag_code:'tn'     },
+      { id:786,  nameKey:'team_Netherlands',   tla:'NED', flag_code:'nl'     },
+      { id:796,  nameKey:'team_Japan',           tla:'JPN', flag_code:'jp'     },
+      { id:790,  nameKey:'team_Sweden',          tla:'SWE', flag_code:'se'     },
+      { id:803,  nameKey:'team_Tunisia',         tla:'TUN', flag_code:'tn'     },
     ]},
     { id:'G', teams:[
-      { id:805,  name:'Belgica',         tla:'BEL', flag_code:'be'     },
-      { id:1954, name:'Egipto',          tla:'EGY', flag_code:'eg'     },
-      { id:793,  name:'Irao',            tla:'IRN', flag_code:'ir'     },
-      { id:1581, name:'Nova Zelandia',   tla:'NZL', flag_code:'nz'     },
+      { id:805,  nameKey:'team_Belgium',         tla:'BEL', flag_code:'be'     },
+      { id:1954, nameKey:'team_Egypt',          tla:'EGY', flag_code:'eg'     },
+      { id:793,  nameKey:'team_Iran',            tla:'IRN', flag_code:'ir'     },
+      { id:1581, nameKey:'team_NewZealand',   tla:'NZL', flag_code:'nz'     },
     ]},
     { id:'H', teams:[
-      { id:760,  name:'Espanha',         tla:'ESP', flag_code:'es'     },
-      { id:6308, name:'Cabo Verde',      tla:'CPV', flag_code:'cv'     },
-      { id:1906, name:'Arabia Saudita',  tla:'KSA', flag_code:'sa'     },
-      { id:780,  name:'Uruguai',         tla:'URU', flag_code:'uy'     },
+      { id:760,  nameKey:'team_Spain',         tla:'ESP', flag_code:'es'     },
+      { id:6308, nameKey:'team_CapeVerde',      tla:'CPV', flag_code:'cv'     },
+      { id:1906, nameKey:'team_SaudiArabia',  tla:'KSA', flag_code:'sa'     },
+      { id:780,  nameKey:'team_Uruguay',         tla:'URU', flag_code:'uy'     },
     ]},
     { id:'I', teams:[
-      { id:773,  name:'Franca',          tla:'FRA', flag_code:'fr'     },
-      { id:907,  name:'Senegal',         tla:'SEN', flag_code:'sn'     },
-      { id:781,  name:'Noruega',         tla:'NOR', flag_code:'no'     },
-      { id:8475, name:'Iraque',          tla:'IRQ', flag_code:'iq'     },
+      { id:773,  nameKey:'team_France',          tla:'FRA', flag_code:'fr'     },
+      { id:907,  nameKey:'team_Senegal',         tla:'SEN', flag_code:'sn'     },
+      { id:781,  nameKey:'team_Norway',         tla:'NOR', flag_code:'no'     },
+      { id:8475, nameKey:'team_Iraq',          tla:'IRQ', flag_code:'iq'     },
     ]},
     { id:'J', teams:[
-      { id:762,  name:'Argentina',       tla:'ARG', flag_code:'ar'     },
-      { id:816,  name:'Austria',         tla:'AUT', flag_code:'at'     },
-      { id:1937, name:'Argelia',         tla:'ALG', flag_code:'dz'     },
-      { id:8487, name:'Jordania',        tla:'JOR', flag_code:'jo'     },
+      { id:762,  nameKey:'team_Argentina',       tla:'ARG', flag_code:'ar'     },
+      { id:816,  nameKey:'team_Austria',         tla:'AUT', flag_code:'at'     },
+      { id:1937, nameKey:'team_Algeria',         tla:'ALG', flag_code:'dz'     },
+      { id:8487, nameKey:'team_Jordan',        tla:'JOR', flag_code:'jo'     },
     ]},
     { id:'K', teams:[
-      { id:765,  name:'Portugal',        tla:'POR', flag_code:'pt'     },
-      { id:1963, name:'RD Congo',        tla:'COD', flag_code:'cd'     },
-      { id:9728, name:'Uzbequistao',     tla:'UZB', flag_code:'uz'     },
-      { id:771,  name:'Colombia',        tla:'COL', flag_code:'co'     },
+      { id:765,  nameKey:'team_Portugal',        tla:'POR', flag_code:'pt'     },
+      { id:1963, nameKey:'team_DRCongo',        tla:'COD', flag_code:'cd'     },
+      { id:9728, nameKey:'team_Uzbekistan',     tla:'UZB', flag_code:'uz'     },
+      { id:771,  nameKey:'team_Colombia',        tla:'COL', flag_code:'co'     },
     ]},
     { id:'L', teams:[
-      { id:770,  name:'Inglaterra',      tla:'ENG', flag_code:'gb-eng' },
-      { id:799,  name:'Croacia',         tla:'CRO', flag_code:'hr'     },
-      { id:1990, name:'Gana',            tla:'GHA', flag_code:'gh'     },
-      { id:800,  name:'Panama',          tla:'PAN', flag_code:'pa'     },
+      { id:770,  nameKey:'team_England',      tla:'ENG', flag_code:'gb-eng' },
+      { id:799,  nameKey:'team_Croatia',         tla:'CRO', flag_code:'hr'     },
+      { id:1990, nameKey:'team_Ghana',            tla:'GHA', flag_code:'gh'     },
+      { id:800,  nameKey:'team_Panama',          tla:'PAN', flag_code:'pa'     },
     ]},
   ];
 
-  // Sem crests - usar apenas bandeiras flagcdn
+  // nameKey ja esta nos objectos via replacements acima
+  // name e resolvido no render com t(nameKey)
   return GROUPS.map(g => ({
     ...g,
     label: `Grupo ${g.id}`,
-    teams: g.teams.map(t => ({
-      ...t,
-      shortName: t.name,
+    teams: g.teams.map(team => ({
+      ...team,
       crest: null,
     }))
   }));
@@ -326,17 +326,26 @@ const GROUP_KICKOFFS = {
 };
 
 function isGroupLocked(id)  { const k = GROUP_KICKOFFS[id]; return k ? new Date() >= k : false; }
+
 function kickoffLabel(id) {
   const k = GROUP_KICKOFFS[id]; if (!k) return '';
-  return k.toLocaleString('pt-PT', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }).replace(',',' -');
+  const lang = (typeof getLang === 'function') ? getLang() : 'pt';
+  const locale = lang === 'pt' ? 'pt-PT' : lang === 'es' ? 'es-ES' : 'en-GB';
+  return k.toLocaleString(locale, { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit', timeZone:'Europe/Lisbon' }).replace(',',' -');
 }
+
 function timeUntilLock(id) {
   const k = GROUP_KICKOFFS[id]; if (!k) return '';
-  const d = k - new Date(); if (d <= 0) return 'Encerrado';
+  const d = k - new Date();
+  if (d <= 0) return typeof t === 'function' ? t('lock_closed') : 'Encerrado';
   const days=Math.floor(d/86400000), hours=Math.floor((d%86400000)/3600000), mins=Math.floor((d%3600000)/60000);
-  if (days > 0)  return `Fecha em ${days}d ${hours}h`;
-  if (hours > 0) return `Fecha em ${hours}h ${mins}m`;
-  return `Fecha em ${mins}m`;
+  const prefix = typeof t === 'function' ? t('lock_closes_in') : 'Fecha em';
+  const dd = typeof t === 'function' ? t('lock_days')  : 'd';
+  const hh = typeof t === 'function' ? t('lock_hours') : 'h';
+  const mm = typeof t === 'function' ? t('lock_mins')  : 'm';
+  if (days > 0)  return `${prefix} ${days}${dd} ${hours}${hh}`;
+  if (hours > 0) return `${prefix} ${hours}${hh} ${mins}${mm}`;
+  return `${prefix} ${mins}${mm}`;
 }
 
 // -- TOAST ------------------------------------------
@@ -397,8 +406,45 @@ function openPerfil(profile) {
   document.getElementById('color-picker').innerHTML=AVATAR_COLORS.map(c=>
     `<div class="color-swatch ${c===profile.avatar_color?'active':''}" style="background:${c}" onclick="selectColor('${c}')"></div>`
   ).join('');
+  // Language selector
+  const langPicker = document.getElementById('lang-picker');
+  if (langPicker) {
+    const langs = [
+      { code:'pt', label:'🇵🇹 Português' },
+      { code:'en', label:'🇬🇧 English'   },
+      { code:'es', label:'🇪🇸 Español'   },
+    ];
+    const curLang = getLang();
+    langPicker.innerHTML = langs.map(l => {
+      const active = curLang === l.code;
+      return `<button onclick="selectLangBtn('${l.code}', this)"
+        style="flex:1;padding:8px;border-radius:8px;
+               border:.5px solid ${active?'var(--gold)':'var(--border2)'};
+               background:${active?'rgba(245,200,66,0.1)':'var(--card2)'};
+               color:${active?'var(--gold)':'var(--muted)'};
+               font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .15s">
+        ${l.label}
+      </button>`;
+    }).join('');
+  }
   openModal('modal-perfil');
 }
+function selectLangBtn(lang, btn) {
+  // Update visual immediately without closing modal
+  const picker = document.getElementById('lang-picker');
+  if (picker) {
+    picker.querySelectorAll('button').forEach(b => {
+      const active = b === btn;
+      b.style.border    = `.5px solid ${active?'var(--gold)':'var(--border2)'}`;
+      b.style.background= active ? 'rgba(245,200,66,0.1)' : 'var(--card2)';
+      b.style.color     = active ? 'var(--gold)' : 'var(--muted)';
+    });
+  }
+  // Change language
+  if (typeof changeLang === 'function') changeLang(lang);
+  else setLang(lang);
+}
+
 function selectColor(c) {
   document.querySelectorAll('.color-swatch').forEach(s=>s.classList.toggle('active',s.style.background===c||s.style.backgroundColor===c));
   document.getElementById('perfil-avatar').style.background=c;
