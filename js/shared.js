@@ -83,7 +83,7 @@ function getWCGroups() {
       { id:803,  nameKey:'team_Turkey',         tla:'TUR', flag_code:'tr'     },
     ]},
     { id:'E', teams:[
-      { id:759,  nameKey:'team_Germany',         tla:'GER', flag_code:'de'     },
+      { id:4,    nameKey:'team_Germany',         tla:'GER', flag_code:'de'     },
       { id:6318, nameKey:'team_Curacao',          tla:'CUW', flag_code:'cw'     },
       { id:1761, nameKey:'team_IvoryCoast', tla:'CIV', flag_code:'ci'     },
       { id:762,  nameKey:'team_Ecuador',         tla:'ECU', flag_code:'ec'     },
@@ -92,7 +92,7 @@ function getWCGroups() {
       { id:786,  nameKey:'team_Netherlands',   tla:'NED', flag_code:'nl'     },
       { id:796,  nameKey:'team_Japan',           tla:'JPN', flag_code:'jp'     },
       { id:790,  nameKey:'team_Sweden',          tla:'SWE', flag_code:'se'     },
-      { id:803,  nameKey:'team_Tunisia',         tla:'TUN', flag_code:'tn'     },
+      { id:1978, nameKey:'team_Tunisia',         tla:'TUN', flag_code:'tn'     },
     ]},
     { id:'G', teams:[
       { id:805,  nameKey:'team_Belgium',         tla:'BEL', flag_code:'be'     },
@@ -104,7 +104,7 @@ function getWCGroups() {
       { id:760,  nameKey:'team_Spain',         tla:'ESP', flag_code:'es'     },
       { id:6308, nameKey:'team_CapeVerde',      tla:'CPV', flag_code:'cv'     },
       { id:1906, nameKey:'team_SaudiArabia',  tla:'KSA', flag_code:'sa'     },
-      { id:780,  nameKey:'team_Uruguay',         tla:'URU', flag_code:'uy'     },
+      { id:2171, nameKey:'team_Uruguay',         tla:'URU', flag_code:'uy'     },
     ]},
     { id:'I', teams:[
       { id:773,  nameKey:'team_France',          tla:'FRA', flag_code:'fr'     },
@@ -113,7 +113,7 @@ function getWCGroups() {
       { id:8475, nameKey:'team_Iraq',          tla:'IRQ', flag_code:'iq'     },
     ]},
     { id:'J', teams:[
-      { id:762,  nameKey:'team_Argentina',       tla:'ARG', flag_code:'ar'     },
+      { id:7,    nameKey:'team_Argentina',       tla:'ARG', flag_code:'ar'     },
       { id:816,  nameKey:'team_Austria',         tla:'AUT', flag_code:'at'     },
       { id:1937, nameKey:'team_Algeria',         tla:'ALG', flag_code:'dz'     },
       { id:8487, nameKey:'team_Jordan',        tla:'JOR', flag_code:'jo'     },
