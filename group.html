@@ -250,6 +250,8 @@ function setupRealtime(bgId) {
     .on('postgres_changes', { event:'*', schema:'public', table:'picks', filter:`bet_group_id=eq.${bgId}` }, async () => {
       const { data } = await sb.from('picks').select('*').eq('bet_group_id', bgId);
       allPicks = data||[];
+      // Nao sincronizar myPicks aqui — myPicks e gerido localmente pelo pickTeam
+      // Apenas actualizar o ranking se estiver visivel
       if (window.location.hash==='#ranking') renderRanking();
     }).subscribe();
   realtimeSubs = [pSub];
@@ -389,9 +391,6 @@ function renderLockNotice() {
 
 async function pickTeam(wcGroupId, teamId) {
   if (isGroupLocked(wcGroupId)) { showToast('&#128274; Apostas fechadas para este grupo', true); return; }
-
-  // Sincronizar myPicks com allPicks (fonte de verdade) antes de agir
-  syncMyPicks();
 
   const picks = myPicks[wcGroupId] || [];
   const ei    = picks.findIndex(p => p.team_id === teamId);
