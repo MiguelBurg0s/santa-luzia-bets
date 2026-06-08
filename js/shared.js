@@ -282,12 +282,13 @@ function tlaToFlagCode(tla, name) {
 
 // -- FLAGS & AVATAR ---------------------------------
 function flagImg(code, size=24) {
-  const h = Math.round(size * 0.75);
-  // Usar crest da API como fallback se flagcdn falhar
-  return `<img src="https://flagcdn.com/${size}x${h}/${(code||'un').toLowerCase()}.png"
-    width="${size}" height="${h}"
+  if (!code) return '';
+  const lower = code.toLowerCase();
+  return `<img src="https://flagicons.lipis.dev/flags/4x3/${lower}.svg"
+    width="${size}" height="${Math.round(size*0.75)}"
     style="border-radius:2px;object-fit:cover;vertical-align:middle;flex-shrink:0"
-    onerror="this.style.display='none'" alt="${code}">`;
+    onerror="this.style.display='none'"
+    alt="${lower}">`;
 }
 
 function crestImg(crestUrl, size=24) {

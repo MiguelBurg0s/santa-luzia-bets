@@ -187,3 +187,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
 .color-picker{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px}
 .color-swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .15s,transform .15s}
 .color-swatch.active{border-color:#fff;transform:scale(1.15)}
+
+/* ── MATCHES ── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.5; }
+}
