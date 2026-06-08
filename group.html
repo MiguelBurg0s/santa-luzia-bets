@@ -415,15 +415,28 @@ async function pickTeam(wcGroupId, teamId) {
   } else {
     if (picks.length >= 3) { showToast('Maximo 3 selecoes por grupo'); return; }
     const order = picks.length + 1;
-    // Usar upsert para evitar 409 se o pick ja existir
-    const { error } = await sb.from('picks').upsert({
-      user_id:      currentUser.id,
-      bet_group_id: betGroup.id,
-      team_id:      teamId,
-      wc_group_id:  wcGroupId,
-      pick_order:   order,
-    }, { onConflict: 'user_id,bet_group_id,team_id' });
-    if (error) { showToast('Erro ao guardar', true); return; }
+    // Verificar se ja existe antes de inserir (evita 409)
+    const { data: existing } = await sb.from('picks')
+      .select('id')
+      .eq('user_id', currentUser.id)
+      .eq('bet_group_id', betGroup.id)
+      .eq('team_id', teamId)
+      .single();
+
+    if (existing) {
+      // Ja existe — actualizar pick_order
+      await sb.from('picks').update({ pick_order: order, wc_group_id: wcGroupId })
+        .eq('id', existing.id);
+    } else {
+      const { error } = await sb.from('picks').insert({
+        user_id:      currentUser.id,
+        bet_group_id: betGroup.id,
+        team_id:      teamId,
+        wc_group_id:  wcGroupId,
+        pick_order:   order,
+      });
+      if (error) { showToast('Erro ao guardar', true); return; }
+    }
     picks.push({ team_id: teamId, pick_order: order });
   }
 
