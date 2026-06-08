@@ -149,9 +149,39 @@ async function fetchWCGroups() {
   return getWCGroups();
 }
 
+// MODO DE TESTE: simula resultados sem depender da API
+// Chama esta funcao na consola do browser para testar o ranking
+// window.testMode(true) para activar, window.testMode(false) para desactivar
+window.testMode = function(active) {
+  if (active) {
+    sessionStorage.setItem('testResults', JSON.stringify({
+      grupos:  [769, 774, 732, 764, 770, 765, 786, 762, 773, 760, 805, 768],
+      '32avos':[769, 764, 770, 765, 786, 762, 773, 760, 805, 768, 759, 788],
+      '16avos':[769, 764, 770, 765, 773, 760, 805, 768],
+      '8avos': [769, 764, 770, 773, 760],
+      quartos: [769, 770, 760],
+      meias:   [770, 760],
+      campeao: [770],
+    }));
+    console.log('Modo de teste ACTIVADO - recarrega a pagina');
+  } else {
+    sessionStorage.removeItem('testResults');
+    console.log('Modo de teste DESACTIVADO - recarrega a pagina');
+  }
+};
+
 // Busca todos os jogos do WC e calcula quem passou cada fase
 // Retorna: { [faseId]: Set<teamId> }
 async function fetchWCResults() {
+  // Verificar modo de teste
+  const testData = sessionStorage.getItem('testResults');
+  if (testData) {
+    console.log('MODO DE TESTE activo');
+    const raw = JSON.parse(testData);
+    const results = {};
+    FASES.forEach(f => results[f.id] = new Set(raw[f.id] || []));
+    return results;
+  }
   const data = await fdFetch(`/competitions/WC/matches?season=${WC_SEASON}`);
   const results = {};
   FASES.forEach(f => results[f.id] = new Set());
