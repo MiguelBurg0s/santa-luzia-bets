@@ -415,16 +415,15 @@ async function pickTeam(wcGroupId, teamId) {
   } else {
     if (picks.length >= 3) { showToast('Maximo 3 selecoes por grupo'); return; }
     const order = picks.length + 1;
-    // Verificar se ja existe antes de inserir (evita 409)
+    // maybeSingle() retorna null se nao existir (single() dá 406)
     const { data: existing } = await sb.from('picks')
       .select('id')
       .eq('user_id', currentUser.id)
       .eq('bet_group_id', betGroup.id)
       .eq('team_id', teamId)
-      .single();
+      .maybeSingle();
 
     if (existing) {
-      // Ja existe — actualizar pick_order
       await sb.from('picks').update({ pick_order: order, wc_group_id: wcGroupId })
         .eq('id', existing.id);
     } else {
