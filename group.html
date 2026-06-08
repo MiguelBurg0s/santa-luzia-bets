@@ -285,8 +285,8 @@ function buildGroupsDOM() {
           </span>
         </div>
         <div style="display:flex;align-items:center;gap:6px;flex-shrink:0">
-          <span id="gbadge-${g.id}"></span>
-          <i class="ti ti-chevron-down chevron" id="gc-${g.id}"></i>
+          <span id="gbadge-${g.id}" style="display:flex;align-items:center;gap:4px"></span>
+          <i class="ti ti-chevron-down chevron" id="gc-${g.id}" style="flex-shrink:0"></i>
         </div>
       </div>
       <div class="card-body" id="gb-${g.id}">
@@ -318,18 +318,33 @@ function updateGroupUI(id) {
   const group  = wcGroups.find(g => g.id === id);
   if (!group) return;
 
+  // Update badge — chevron is a SIBLING element, never touched here
   const badge = document.getElementById('gbadge-'+id);
   if (badge) {
-    if (locked)           badge.innerHTML = `<span class="badge badge-err">&#128274; Fechado</span>`;
-    else if (picks.length) badge.innerHTML = `<span class="badge badge-ok">&#10003; ${picks.length}</span> <span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
-    else                  badge.innerHTML = `<span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
+    if (locked) {
+      badge.innerHTML = `<span class="badge badge-err">&#128274; Fechado</span>`;
+    } else if (picks.length > 0) {
+      badge.innerHTML = `<span class="badge badge-ok">&#10003; ${picks.length}</span><span style="font-size:10px;color:var(--muted);margin-left:3px">${timeUntilLock(id)}</span>`;
+    } else {
+      badge.innerHTML = `<span style="font-size:10px;color:var(--muted)">${timeUntilLock(id)}</span>`;
+    }
+    // Preserve chevron open state — read from body, not from chevron innerHTML
+    const body = document.getElementById('gb-'+id);
+    const chev = document.getElementById('gc-'+id);
+    if (chev && body) {
+      chev.classList.toggle('open', body.classList.contains('open'));
+    }
   }
 
+  // Hint text inside group
   const gm = document.getElementById('gm-'+id);
-  if (gm) gm.innerHTML = locked
-    ? `&#128274; Apostas fechadas &mdash; jogo comecou a <strong>${kickoffLabel(id)}</strong>`
-    : `Seleciona ate 3 &middot; <strong>${timeUntilLock(id)}</strong>`;
+  if (gm) {
+    gm.innerHTML = locked
+      ? `&#128274; Apostas fechadas &mdash; jogo comecou a <strong>${kickoffLabel(id)}</strong>`
+      : `Seleciona ate 3 &middot; <strong>${timeUntilLock(id)}</strong>`;
+  }
 
+  // Update each team button — only class/disabled/order badge, never innerHTML
   group.teams.forEach(t => {
     const btn = document.getElementById(`tb-${id}-${t.id}`);
     const ob  = document.getElementById(`ob-${id}-${t.id}`);
@@ -338,7 +353,10 @@ function updateGroupUI(id) {
     const sel = pi !== -1;
     btn.classList.toggle('selected', sel);
     btn.disabled = locked;
-    if (ob) { ob.style.display=sel?'':'none'; ob.textContent=sel?`#${picks[pi].pick_order}`:''; }
+    if (ob) {
+      ob.style.display = sel ? 'inline' : 'none';
+      ob.textContent   = sel ? `#${picks[pi].pick_order}` : '';
+    }
   });
 }
 
@@ -371,21 +389,56 @@ function renderLockNotice() {
 
 async function pickTeam(wcGroupId, teamId) {
   if (isGroupLocked(wcGroupId)) { showToast('&#128274; Apostas fechadas para este grupo', true); return; }
+
+  // Sincronizar myPicks com allPicks (fonte de verdade) antes de agir
+  syncMyPicks();
+
   const picks = myPicks[wcGroupId] || [];
   const ei    = picks.findIndex(p => p.team_id === teamId);
+
   if (ei !== -1) {
-    await sb.from('picks').delete().eq('user_id',currentUser.id).eq('team_id',teamId).eq('bet_group_id',betGroup.id);
+    // Remover pick
+    const { error } = await sb.from('picks').delete()
+      .eq('user_id', currentUser.id)
+      .eq('team_id', teamId)
+      .eq('bet_group_id', betGroup.id);
+    if (error) { showToast('Erro ao remover', true); return; }
     picks.splice(ei, 1);
-    picks.forEach((p,i) => p.pick_order=i+1);
+    picks.forEach((p,i) => p.pick_order = i+1);
+    // Actualizar pick_order na BD
+    for (const p of picks) {
+      await sb.from('picks').update({ pick_order: p.pick_order })
+        .eq('user_id', currentUser.id)
+        .eq('team_id', p.team_id)
+        .eq('bet_group_id', betGroup.id);
+    }
   } else {
     if (picks.length >= 3) { showToast('Maximo 3 selecoes por grupo'); return; }
-    const order = picks.length+1;
-    const { error } = await sb.from('picks').insert({ user_id:currentUser.id, bet_group_id:betGroup.id, team_id:teamId, wc_group_id:wcGroupId, pick_order:order });
-    if (error) { showToast('Erro ao guardar',true); return; }
-    picks.push({ team_id:teamId, pick_order:order });
+    const order = picks.length + 1;
+    // Usar upsert para evitar 409 se o pick ja existir
+    const { error } = await sb.from('picks').upsert({
+      user_id:      currentUser.id,
+      bet_group_id: betGroup.id,
+      team_id:      teamId,
+      wc_group_id:  wcGroupId,
+      pick_order:   order,
+    }, { onConflict: 'user_id,bet_group_id,team_id' });
+    if (error) { showToast('Erro ao guardar', true); return; }
+    picks.push({ team_id: teamId, pick_order: order });
   }
+
   myPicks[wcGroupId] = picks;
   updateGroupUI(wcGroupId);
+}
+
+// Sincroniza myPicks com allPicks (evita dessincronizacao por Realtime)
+function syncMyPicks() {
+  myPicks = {};
+  allPicks.filter(p => p.user_id === currentUser.id).forEach(p => {
+    if (!myPicks[p.wc_group_id]) myPicks[p.wc_group_id] = [];
+    myPicks[p.wc_group_id].push({ team_id: p.team_id, pick_order: p.pick_order });
+  });
+  Object.keys(myPicks).forEach(g => myPicks[g].sort((a,b) => a.pick_order - b.pick_order));
 }
 
 // -- RANKING -----------------------------------------
