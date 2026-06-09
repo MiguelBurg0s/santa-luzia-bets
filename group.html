@@ -347,6 +347,17 @@ function buildGroupsDOM() {
   if (first) toggleCard('gb-'+first.id, 'gc-'+first.id);
 }
 
+function totalPicksCount() {
+  return Object.values(myPicks).reduce((sum, picks) => sum + picks.length, 0);
+}
+
+// Conta quantos 3os lugares (pick_order === 3) o utilizador tem apostados
+function totalThirdsCount() {
+  return Object.values(myPicks).reduce((sum, picks) => {
+    return sum + picks.filter(p => p.pick_order === 3).length;
+  }, 0);
+}
+
 function updateAllGroups() { wcGroups.forEach(g => updateGroupUI(g.id)); }
 
 function updateGroupUI(id) {
@@ -382,6 +393,7 @@ function updateGroupUI(id) {
   }
 
   // Update each team button — only class/disabled/order badge, never innerHTML
+  const atLimit = totalPicksCount() >= 32;
   group.teams.forEach(tm => {
     const btn = document.getElementById(`tb-${id}-${tm.id}`);
     const ob  = document.getElementById(`ob-${id}-${tm.id}`);
@@ -389,7 +401,10 @@ function updateGroupUI(id) {
     const pi  = picks.findIndex(p => p.team_id === tm.id);
     const sel = pi !== -1;
     btn.classList.toggle('selected', sel);
-    btn.disabled = locked;
+    // Disable if: locked, total limit reached (and not selected), or thirds limit reached for 3rd picks
+    const wouldBeThird = !sel && picks.length === 2;
+    const thirdsLimitReached = totalThirdsCount() >= 8;
+    btn.disabled = locked || (atLimit && !sel) || (wouldBeThird && thirdsLimitReached);
     if (ob) {
       ob.style.display = sel ? 'inline' : 'none';
       ob.textContent   = sel ? `#${picks[pi].pick_order}` : '';
@@ -429,6 +444,17 @@ async function pickTeam(wcGroupId, teamId) {
 
   const picks = myPicks[wcGroupId] || [];
   const ei    = picks.findIndex(p => p.team_id === teamId);
+
+  if (ei === -1 && totalPicksCount() >= 32) {
+    showToast(t('bets_max_total'), true);
+    return;
+  }
+
+  // Check thirds limit: if adding a 3rd pick (pick_order would be 3) and already have 8 thirds
+  if (ei === -1 && picks.length === 2 && totalThirdsCount() >= 8) {
+    showToast(t('bets_max_thirds'), true);
+    return;
+  }
 
   if (ei !== -1) {
     // Remover pick
