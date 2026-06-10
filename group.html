@@ -677,6 +677,7 @@ function openSettings() {
     <div class="form-group"><label data-i18n="settings_name"></label><input type="text" id="s-name" value="${betGroup.name}"></div>
     <div class="form-group"><label data-i18n="settings_desc"></label><input type="text" id="s-desc" value="${betGroup.description||''}"></div>
     <button class="btn-primary" onclick="saveSettings()" style="margin-bottom:.75rem">${t('settings_save')}</button>`:''}
+    ${isAdmin ? `<button onclick="dissolveGroup()" style="width:100%;background:rgba(232,85,85,0.08);border:.5px solid rgba(232,85,85,0.4);border-radius:10px;padding:11px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;margin-top:.5rem"><i class="ti ti-trash"></i> ${t('group_dissolve')}</button>` : ''}
     <button onclick="leaveGroup()" style="width:100%;background:none;border:.5px solid rgba(232,85,85,0.3);border-radius:10px;padding:11px;color:var(--red);font-family:'DM Sans',sans-serif;font-size:13px;cursor:pointer;margin-top:.5rem">
       <i class="ti ti-door-exit"></i> ${t('settings_leave')}
     </button>`;
@@ -692,10 +693,16 @@ function renderMembersList() {
         <div class="member-name">${prof.display_name}${isMe?' <span style="color:var(--muted);font-size:11px">(tu)</span>':''}</div>
         <div style="font-size:10px;color:${m.is_admin?'var(--gold)':'var(--muted)'}">${m.is_admin ? t('settings_admin') : t('settings_member')}</div>
       </div>
-      ${canT?`<button onclick="toggleAdmin('${prof.id}',${m.is_admin})"
-        style="background:${m.is_admin?'rgba(232,85,85,0.12)':'rgba(245,200,66,0.12)'};color:${m.is_admin?'var(--red)':'var(--gold)'};border:.5px solid ${m.is_admin?'rgba(232,85,85,0.3)':'rgba(245,200,66,0.3)'};border-radius:8px;padding:5px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif">
-        ${m.is_admin ? t('settings_remove_admin') : t('settings_make_admin')}
-      </button>`:''}
+      ${canT?`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+        <button onclick="toggleAdmin('${prof.id}',${m.is_admin})"
+          style="background:${m.is_admin?'rgba(232,85,85,0.12)':'rgba(245,200,66,0.12)'};color:${m.is_admin?'var(--red)':'var(--gold)'};border:.5px solid ${m.is_admin?'rgba(232,85,85,0.3)':'rgba(245,200,66,0.3)'};border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif">
+          ${m.is_admin ? t('settings_remove_admin') : t('settings_make_admin')}
+        </button>
+        <button onclick="kickMember('${prof.id}','${prof.display_name.replace(/'/g, '')}')"
+          style="background:rgba(232,85,85,0.08);color:var(--red);border:.5px solid rgba(232,85,85,0.25);border-radius:8px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap;font-family:'DM Sans',sans-serif">
+          ${t('member_kick')}
+        </button>
+      </div>`:''}
     </div>`;
   }).join('');
 }
@@ -724,8 +731,48 @@ async function saveSettings() {
 
 async function leaveGroup() {
   if (!confirm(t('settings_leave_confirm', { name: betGroup.name }))) return;
-  await sb.from('bet_group_members').delete().eq('bet_group_id',betGroup.id).eq('user_id',currentUser.id);
-  window.location.href='lobby.html';
+
+  // Verificar quantos membros existem ANTES de sair
+  const { data: remaining } = await sb.from('bet_group_members')
+    .select('id').eq('bet_group_id', betGroup.id);
+
+  const isLastMember = remaining && remaining.length === 1;
+
+  if (isLastMember) {
+    // Se e o ultimo membro, dissolver o grupo diretamente (picks apagam em cascata)
+    const { error } = await sb.from('bet_groups').delete().eq('id', betGroup.id);
+    if (error) console.error('Erro ao apagar grupo:', error);
+  } else {
+    // Ha mais membros, apenas sair
+    await sb.from('bet_group_members').delete()
+      .eq('bet_group_id', betGroup.id).eq('user_id', currentUser.id);
+  }
+
+  window.location.href = 'lobby.html';
+}
+
+async function dissolveGroup() {
+  if (!isAdmin) return;
+  if (!confirm(t('group_dissolve_confirm', { name: betGroup.name }))) return;
+  const { error } = await sb.from('bet_groups').delete().eq('id', betGroup.id);
+  if (error) { showToast(t('group_dissolve_error'), true); console.error(error); return; }
+  showToast(t('group_dissolved'));
+  window.location.href = 'lobby.html';
+}
+
+async function kickMember(userId, displayName) {
+  if (!isAdmin) return;
+  if (!confirm(t('member_kick_confirm', { name: displayName }))) return;
+  const { error } = await sb.from('bet_group_members').delete()
+    .eq('bet_group_id', betGroup.id).eq('user_id', userId);
+  if (error) { showToast(t('member_kick_error'), true); return; }
+  const idx = groupMembers.findIndex(m => m.profiles.id === userId);
+  if (idx !== -1) groupMembers.splice(idx, 1);
+  const inner = document.getElementById('members-inner');
+  if (inner) inner.innerHTML = renderMembersList();
+  const metaEl = document.getElementById('group-meta');
+  if (metaEl) metaEl.textContent = `${groupMembers.length} ${t('settings_members').toLowerCase()}`;
+  showToast(t('member_kicked', { name: displayName }));
 }
 
 // -- JOGOS -------------------------------------------
