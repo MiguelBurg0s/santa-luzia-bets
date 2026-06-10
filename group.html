@@ -48,6 +48,7 @@
 
     <!-- APOSTAS -->
     <div id="screen-apostas" class="screen" style="display:none">
+      <div id="copy-bets-banner" style="display:none"></div>
       <div id="lock-notice"></div>
       <div class="nota"><span>⭐</span><span id="bets-note-text"></span></div>
       <div id="groups-container"></div>
@@ -144,6 +145,18 @@
   <div class="modal-card">
     <div class="modal-header"><span data-i18n="settings_title"></span><button onclick="closeModal('modal-settings')"><i class="ti ti-x"></i></button></div>
     <div id="settings-content"></div>
+  </div>
+</div>
+
+<!-- MODAL: Copiar apostas -->
+<div id="modal-copy-bets" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span data-i18n="copy_bets_title"></span>
+      <button onclick="closeModal('modal-copy-bets')"><i class="ti ti-x"></i></button>
+    </div>
+    <div class="nota"><span>ℹ️</span><span data-i18n="copy_bets_note"></span></div>
+    <div id="copy-bets-groups" style="margin-top:.75rem"></div>
   </div>
 </div>
 
@@ -244,6 +257,7 @@ let realtimeSubs   = [];
   buildGroupsDOM();
   updateAllGroups();
   renderLockNotice();
+  renderCopyBetsBanner();
 
   window.addEventListener('hashchange', onHashChange);
   onHashChange();
@@ -501,6 +515,7 @@ async function pickTeam(wcGroupId, teamId) {
 
   myPicks[wcGroupId] = picks;
   updateGroupUI(wcGroupId);
+  renderCopyBetsBanner();
 
   // Sincronizar allPicks localmente para o ranking e viewer actualizarem sem esperar Realtime
   syncAllPicks();
@@ -882,6 +897,133 @@ async function refreshMatches() {
 }
 
 
+// -- COPIAR APOSTAS ----------------------------------
+
+// Verifica se deve mostrar o banner de copiar apostas
+function renderCopyBetsBanner() {
+  const banner = document.getElementById('copy-bets-banner');
+  if (!banner) return;
+
+  // Só mostrar se este grupo não tem apostas
+  const hasPicksHere = Object.values(myPicks).some(p => p.length > 0);
+  if (hasPicksHere) { banner.style.display = 'none'; return; }
+
+  // Ver se há outros grupos de apostas com picks do utilizador
+  // Precisamos de ir buscar os outros grupos do utilizador
+  getOtherGroupsWithPicks().then(otherGroups => {
+    if (!otherGroups.length) { banner.style.display = 'none'; return; }
+
+    banner.style.display = 'block';
+    banner.innerHTML = `
+      <div class="nota" style="background:rgba(45,158,88,0.07);border-color:rgba(45,158,88,0.25);margin-bottom:12px">
+        <span>📋</span>
+        <div style="flex:1">
+          <div style="margin-bottom:8px">${t('copy_bets_banner')}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            ${otherGroups.map(g => `
+              <button onclick="confirmCopyBets('${g.id}', '${g.name.replace(/'/g, "\'")}')"
+                style="background:rgba(45,158,88,0.15);border:.5px solid rgba(45,158,88,0.3);border-radius:8px;
+                       padding:6px 12px;color:var(--gl);font-family:'DM Sans',sans-serif;font-size:12px;
+                       font-weight:600;cursor:pointer;transition:background .15s"
+                onmouseover="this.style.background='rgba(45,158,88,0.25)'"
+                onmouseout="this.style.background='rgba(45,158,88,0.15)'">
+                📋 ${g.name}
+              </button>`).join('')}
+          </div>
+        </div>
+      </div>`;
+  });
+}
+
+async function getOtherGroupsWithPicks() {
+  // Buscar todos os grupos de apostas do utilizador com picks
+  const { data } = await sb.from('picks')
+    .select('bet_group_id, bet_groups(name)')
+    .eq('user_id', currentUser.id)
+    .neq('bet_group_id', betGroup.id);
+
+  if (!data) return [];
+
+  // Agrupar por bet_group_id e remover duplicados
+  const seen = new Set();
+  return data
+    .filter(p => { if (seen.has(p.bet_group_id)) return false; seen.add(p.bet_group_id); return true; })
+    .map(p => ({ id: p.bet_group_id, name: p.bet_groups?.name || p.bet_group_id }));
+}
+
+function confirmCopyBets(sourceGroupId, sourceGroupName) {
+  // Show confirmation modal with source group options
+  const container = document.getElementById('copy-bets-groups');
+  if (container) {
+    container.innerHTML = `
+      <div style="font-size:13px;color:var(--muted);margin-bottom:12px">
+        ${t('copy_bets_from')}: <strong style="color:var(--text)">${sourceGroupName}</strong>
+      </div>
+      <button class="btn-primary" onclick="executeCopyBets('${sourceGroupId}')">
+        ${t('copy_bets_btn')}
+      </button>`;
+  }
+  openModal('modal-copy-bets');
+}
+
+async function executeCopyBets(sourceGroupId) {
+  closeModal('modal-copy-bets');
+
+  // Fetch picks from source group
+  const { data: sourcePicks } = await sb.from('picks')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('bet_group_id', sourceGroupId);
+
+  if (!sourcePicks || !sourcePicks.length) {
+    showToast(t('copy_bets_empty'), true);
+    return;
+  }
+
+  // Delete existing picks in this group
+  await sb.from('picks').delete()
+    .eq('user_id', currentUser.id)
+    .eq('bet_group_id', betGroup.id);
+
+  // Filter out picks for locked groups and respect limits
+  const now = new Date();
+  const validPicks = sourcePicks.filter(p => !isGroupLocked(p.wc_group_id));
+
+  // Insert picks for this group
+  const newPicks = validPicks.map(p => ({
+    user_id:      currentUser.id,
+    bet_group_id: betGroup.id,
+    team_id:      p.team_id,
+    wc_group_id:  p.wc_group_id,
+    pick_order:   p.pick_order,
+  }));
+
+  if (newPicks.length) {
+    const { error } = await sb.from('picks').insert(newPicks);
+    if (error) { showToast(t('bets_save_error'), true); return; }
+  }
+
+  // Rebuild local state
+  myPicks = {};
+  newPicks.forEach(p => {
+    if (!myPicks[p.wc_group_id]) myPicks[p.wc_group_id] = [];
+    myPicks[p.wc_group_id].push({ team_id: p.team_id, pick_order: p.pick_order });
+  });
+  Object.keys(myPicks).forEach(g => myPicks[g].sort((a,b) => a.pick_order - b.pick_order));
+
+  syncAllPicks();
+  buildGroupsDOM();
+  updateAllGroups();
+  renderCopyBetsBanner();
+
+  const skipped = sourcePicks.length - newPicks.length;
+  const msg = skipped > 0
+    ? `${t('copy_bets_success')} (${skipped} grupo${skipped!==1?'s':''} fechado${skipped!==1?'s':''} ignorado${skipped!==1?'s':''})`
+    : t('copy_bets_success');
+  showToast(msg);
+}
+
+
 // Ver apostas de um jogador
 function viewPlayerPicks(userId, displayName) {
   const prof    = groupMembers.find(m => m.profiles.id === userId)?.profiles;
@@ -973,6 +1115,7 @@ function changeLang(lang) {
   buildGroupsDOM();
   updateAllGroups();
   renderLockNotice();
+  renderCopyBetsBanner();
   // Actualizar header meta (ex: "6 membros")
   const metaEl = document.getElementById('group-meta');
   if (metaEl) metaEl.textContent = `${groupMembers.length} ${t('settings_members').toLowerCase()}`;
