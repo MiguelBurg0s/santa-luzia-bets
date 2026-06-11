@@ -60,7 +60,7 @@ function getWCGroups() {
   const GROUPS = [
     { id:'A', teams:[
       { id:769,  nameKey:'team_Mexico',          tla:'MEX', flag_code:'mx'     },
-      { id:815,  nameKey:'team_SouthAfrica',   tla:'RSA', flag_code:'za'     },
+      { id:774,  nameKey:'team_SouthAfrica',   tla:'RSA', flag_code:'za'     },
       { id:732,  nameKey:'team_SouthKorea',   tla:'KOR', flag_code:'kr'     },
       { id:798,  nameKey:'team_Czechia',         tla:'CZE', flag_code:'cz'     },
     ]},
@@ -223,12 +223,14 @@ async function fetchWCResults() {
 
   for (const standing of (standingsData.standings || [])) {
     if (standing.type !== 'TOTAL') continue;
-    const table = standing.table;
-    // 1o e 2o de cada grupo passam diretamente
-    if (table[0]?.playedGames >= 3) results['grupos'].add(table[0].team.id);
-    if (table[1]?.playedGames >= 3) results['grupos'].add(table[1].team.id);
-    // 3os ficam em lista de espera
-    if (table[2]?.playedGames >= 3) allThirds.push({ team: table[2].team, pts: table[2].points, gd: table[2].goalDifference, gf: table[2].goalsFor });
+    const table = standing.table.filter(row => row.playedGames > 0);
+    if (!table.length) continue;
+    // 1º lugar passa sempre se já jogou
+    if (table[0]) results['grupos'].add(table[0].team.id);
+    // 2º lugar só conta se tiver pontos (ganhou ou empatou algo)
+    if (table[1] && table[1].points > 0) results['grupos'].add(table[1].team.id);
+    // 3os ficam em lista de espera (só se tiverem pontos)
+    if (table[2] && table[2].points > 0) allThirds.push({ team: table[2].team, pts: table[2].points, gd: table[2].goalDifference, gf: table[2].goalsFor });
   }
 
   // Melhores 8 terceiros classificados passam (top 8 por pts, depois GD, depois GF)

@@ -1035,16 +1035,14 @@ async function renderStandings() {
     // Usar wcGroups (dados estáticos) para separar por grupo
     // e os standings da API apenas para os stats (jogos, pontos, etc.)
 
-    // Criar lookup de stats por team id
+    // Criar lookup de stats por team id — apenas TOTAL (ignorar HOME e AWAY)
     const statsByTeamId = {};
-    for (const s of standings) {
-      if (s.type !== 'TOTAL') continue;
-      for (const row of (s.table || [])) {
+    const totalStanding = standings.find(s => s.type === 'TOTAL');
+    for (const row of (totalStanding?.table || [])) {
         statsByTeamId[row.team.id] = row;
         // Também indexar por TLA como fallback
         if (row.team.tla) statsByTeamId[row.team.tla] = row;
       }
-    }
 
     const hasStats = Object.keys(statsByTeamId).length > 0;
 
@@ -1147,10 +1145,10 @@ async function startAutoRefresh() {
   // Verificar de imediato
   await checkForNewResults();
 
-  // Polling a cada 5 minutos
+  // Polling a cada 10 minutos quando há jogos em curso ou a começar em menos de 2 horas
   autoRefreshInterval = setInterval(async () => {
     await checkForNewResults();
-  }, 5 * 60 * 1000);
+  }, 10 * 60 * 1000);
 }
 
 async function checkForNewResults() {
@@ -1195,7 +1193,7 @@ async function checkForNewResults() {
       // Ha jogos em curso ou a comecar em breve — polling a cada 5 min
       if (autoRefreshInterval) {
         clearInterval(autoRefreshInterval);
-        autoRefreshInterval = setInterval(checkForNewResults, 5 * 60 * 1000);
+        autoRefreshInterval = setInterval(checkForNewResults, 10 * 60 * 1000);
       }
     }
 
