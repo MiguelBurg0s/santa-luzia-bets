@@ -193,3 +193,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min
   0%, 100% { opacity: 1; }
   50%       { opacity: 0.5; }
 }
+
+/* ── CHAT ── */
+#chat-panel { display: none; flex-direction: column; }
+#chat-panel.open { display: flex !important; }
+#chat-messages::-webkit-scrollbar { width: 4px; }
+#chat-messages::-webkit-scrollbar-track { background: transparent; }
+#chat-messages::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+#chat-fab:hover { transform: scale(1.08) !important; }
+#chat-input:focus { border-color: var(--gold) !important; }

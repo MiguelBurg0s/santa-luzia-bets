@@ -183,6 +183,47 @@
   </div>
 </div>
 
+<!-- CHAT FLUTUANTE -->
+<button id="chat-fab" onclick="toggleChat()"
+  style="position:fixed;bottom:80px;right:16px;width:52px;height:52px;border-radius:50%;
+         background:var(--gold);border:none;cursor:pointer;z-index:100;
+         display:flex;align-items:center;justify-content:center;
+         box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:transform .2s">
+  <i class="ti ti-message-circle" style="font-size:22px;color:#0d1f14"></i>
+  <span id="chat-badge" style="position:absolute;top:-2px;right:-2px;background:var(--red);
+    color:#fff;border-radius:50%;width:18px;height:18px;font-size:10px;font-weight:700;
+    display:none;align-items:center;justify-content:center"></span>
+</button>
+
+<div id="chat-panel" style="display:none;position:fixed;bottom:140px;right:16px;
+  width:min(360px,calc(100vw - 32px));height:480px;
+  background:var(--card);border:.5px solid var(--border);border-radius:16px;
+  box-shadow:0 8px 32px rgba(0,0,0,0.5);z-index:99;
+  display:none;flex-direction:column;overflow:hidden">
+  <div style="padding:12px 16px;border-bottom:.5px solid var(--border);
+    display:flex;align-items:center;justify-content:space-between;flex-shrink:0">
+    <div style="font-size:14px;font-weight:600" data-i18n="chat_title"></div>
+    <button onclick="toggleChat()" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px">
+      <i class="ti ti-x" style="font-size:18px"></i>
+    </button>
+  </div>
+  <div id="chat-messages" style="flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px">
+    <div style="text-align:center;color:var(--muted);font-size:13px" data-i18n="chat_loading"></div>
+  </div>
+  <div style="padding:10px 12px;border-top:.5px solid var(--border);display:flex;gap:8px;flex-shrink:0">
+    <input id="chat-input" type="text" maxlength="500"
+      style="flex:1;background:var(--card2);border:.5px solid var(--border2);border-radius:10px;
+             padding:9px 12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:13px;outline:none"
+      onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+      placeholder="">
+    <button onclick="sendMessage()"
+      style="background:var(--gold);border:none;border-radius:10px;padding:9px 14px;
+             color:#0d1f14;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap">
+      <i class="ti ti-send" style="font-size:16px"></i>
+    </button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -960,6 +1001,203 @@ async function refreshMatches() {
 }
 
 
+// -- CHAT --------------------------------------------
+let chatOpen        = false;
+let chatMessages    = [];
+let chatSub         = null;
+let chatUnread      = 0;
+let chatInitialized = false;
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  const panel = document.getElementById('chat-panel');
+  const fab   = document.getElementById('chat-fab');
+  panel.style.display = chatOpen ? 'flex' : 'none';
+  fab.style.transform = chatOpen ? 'scale(0.9)' : 'scale(1)';
+
+  if (chatOpen) {
+    chatUnread = 0;
+    updateChatBadge();
+    if (!chatInitialized) initChat();
+    else scrollChatToBottom();
+    // Translate placeholder
+    const inp = document.getElementById('chat-input');
+    if (inp) inp.placeholder = t('chat_placeholder');
+  }
+}
+
+async function initChat() {
+  chatInitialized = true;
+  const inp = document.getElementById('chat-input');
+  if (inp) inp.placeholder = t('chat_placeholder');
+
+  // Load last 50 messages
+  const { data, error } = await sb.from('messages')
+    .select('*, profiles(display_name, avatar_color)')
+    .eq('bet_group_id', betGroup.id)
+    .order('created_at', { ascending: true })
+    .limit(50);
+
+  if (error) {
+    renderChatMessages([]);
+    return;
+  }
+
+  chatMessages = data || [];
+  renderChatMessages(chatMessages);
+
+  // Realtime subscription
+  chatSub = sb.channel('chat-' + betGroup.id)
+    .on('postgres_changes', {
+      event: 'INSERT', schema: 'public', table: 'messages',
+      filter: `bet_group_id=eq.${betGroup.id}`
+    }, async payload => {
+      // Fetch with profile
+      const { data: msg } = await sb.from('messages')
+        .select('*, profiles(display_name, avatar_color)')
+        .eq('id', payload.new.id)
+        .single();
+      if (msg) {
+        chatMessages.push(msg);
+        appendChatMessage(msg);
+        if (!chatOpen || document.hidden) {
+          chatUnread++;
+          updateChatBadge();
+        }
+      }
+    })
+    .on('postgres_changes', {
+      event: 'DELETE', schema: 'public', table: 'messages',
+      filter: `bet_group_id=eq.${betGroup.id}`
+    }, payload => {
+      chatMessages = chatMessages.filter(m => m.id !== payload.old.id);
+      const el = document.getElementById('msg-' + payload.old.id);
+      if (el) el.remove();
+    })
+    .subscribe();
+}
+
+function renderChatMessages(msgs) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  if (!msgs.length) {
+    container.innerHTML = `<div style="text-align:center;color:var(--muted);font-size:13px;margin:auto">${t('chat_empty')}</div>`;
+    return;
+  }
+
+  container.innerHTML = msgs.map(m => chatMessageHTML(m)).join('');
+  scrollChatToBottom();
+}
+
+function appendChatMessage(msg) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  // Remove empty state
+  const empty = container.querySelector('[data-i18n]');
+  if (empty) empty.remove();
+
+  container.insertAdjacentHTML('beforeend', chatMessageHTML(msg));
+  scrollChatToBottom();
+}
+
+function chatMessageHTML(msg) {
+  const isMe    = msg.user_id === currentUser.id;
+  const prof    = msg.profiles;
+  const name    = prof?.display_name || '?';
+  const color   = prof?.avatar_color || '#2d9e58';
+  const time    = new Date(msg.created_at).toLocaleTimeString(
+    getLang() === 'pt' ? 'pt-PT' : getLang() === 'es' ? 'es-ES' : 'en-GB',
+    { hour: '2-digit', minute: '2-digit' }
+  );
+
+  return `<div id="msg-${msg.id}" style="display:flex;gap:8px;align-items:flex-start;${isMe ? 'flex-direction:row-reverse' : ''}">
+    <div style="width:28px;height:28px;border-radius:50%;background:${color};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;color:#fff">
+      ${getInitials(name)}
+    </div>
+    <div style="max-width:75%;${isMe ? 'align-items:flex-end' : 'align-items:flex-start'};display:flex;flex-direction:column;gap:2px">
+      ${!isMe ? `<div style="font-size:10px;color:var(--muted);margin-bottom:1px">${name}</div>` : ''}
+      <div style="background:${isMe ? 'var(--gold)' : 'var(--card2)'};color:${isMe ? '#0d1f14' : 'var(--text)'};
+                  border-radius:${isMe ? '12px 4px 12px 12px' : '4px 12px 12px 12px'};
+                  padding:8px 11px;font-size:13px;line-height:1.4;word-break:break-word;
+                  position:relative">
+        ${escapeHtml(msg.content)}
+        ${isMe ? `<button onclick="deleteMessage('${msg.id}')"
+          style="position:absolute;top:-6px;right:-6px;background:var(--red);border:none;
+                 border-radius:50%;width:16px;height:16px;color:#fff;font-size:9px;
+                 cursor:pointer;display:none;align-items:center;justify-content:center"
+          class="msg-delete-btn">✕</button>` : ''}
+      </div>
+      <div style="font-size:10px;color:var(--muted)">${time}</div>
+    </div>
+  </div>`;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// Show delete button on hover for own messages
+document.addEventListener('mouseover', e => {
+  const msgEl = e.target.closest('[id^="msg-"]');
+  if (!msgEl) return;
+  const btn = msgEl.querySelector('.msg-delete-btn');
+  if (btn) btn.style.display = 'flex';
+});
+document.addEventListener('mouseout', e => {
+  const msgEl = e.target.closest('[id^="msg-"]');
+  if (!msgEl) return;
+  const btn = msgEl.querySelector('.msg-delete-btn');
+  if (btn) btn.style.display = 'none';
+});
+
+async function sendMessage() {
+  const inp     = document.getElementById('chat-input');
+  const content = inp?.value.trim();
+  if (!content) return;
+
+  inp.value = '';
+
+  const { error } = await sb.from('messages').insert({
+    bet_group_id: betGroup.id,
+    user_id:      currentUser.id,
+    content,
+  });
+
+  if (error) {
+    showToast(t('chat_error_send'), true);
+    inp.value = content; // restore
+  }
+}
+
+async function deleteMessage(id) {
+  // Remove do DOM imediatamente
+  const el = document.getElementById('msg-' + id);
+  if (el) el.remove();
+  chatMessages = chatMessages.filter(m => m.id !== id);
+
+  // Apagar na BD
+  await sb.from('messages').delete().eq('id', id);
+}
+
+function scrollChatToBottom() {
+  const container = document.getElementById('chat-messages');
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+function updateChatBadge() {
+  const badge = document.getElementById('chat-badge');
+  if (!badge) return;
+  if (chatUnread > 0) {
+    badge.textContent = chatUnread > 9 ? '9+' : chatUnread;
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+
 // -- PRÉMIO ------------------------------------------
 
 function renderPrizeBanner() {
@@ -1278,12 +1516,19 @@ function changeLang(lang) {
   // Actualizar header meta (ex: "6 membros")
   const metaEl = document.getElementById('group-meta');
   if (metaEl) metaEl.textContent = `${groupMembers.length} ${t('settings_members').toLowerCase()}`;
+  // Actualizar placeholder do chat
+  const chatInp2 = document.getElementById('chat-input');
+  if (chatInp2) chatInp2.placeholder = t('chat_placeholder');
   const hash = window.location.hash.replace('#','') || 'apostas';
   if (hash === 'ranking')  renderRanking();
   if (hash === 'matches') { matchesCache = null; renderMatches(); } // invalidar cache para traduzir nomes
 }
 
 applyTranslations();
+// Translate chat elements if open
+const chatInp = document.getElementById('chat-input');
+if (chatInp) chatInp.placeholder = t('chat_placeholder');
+document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
 </script>
 </body>
 </html>
