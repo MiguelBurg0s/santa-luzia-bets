@@ -58,18 +58,34 @@
 <script src="js/i18n.js"></script>
 <script src="js/shared.js"></script>
 <script>
-// O Supabase processa o token OAuth do URL hash automaticamente.
-// Usamos onAuthStateChange como fonte única de verdade.
+// PASSWORD RECOVERY: guardar flag antes do redirect interno do Supabase
+const _url  = new URL(window.location.href);
+const _hash = new URLSearchParams(_url.hash.slice(1));
+if (_url.searchParams.get('type') === 'recovery' || _hash.get('type') === 'recovery') {
+  sessionStorage.setItem('slb_recovery', '1');
+}
+
 sb.auth.onAuthStateChange((event, session) => {
-  if (session) {
+  if (event === 'PASSWORD_RECOVERY') {
+    sessionStorage.setItem('slb_recovery', '1');
+    toggleForm('reset');
+    applyTranslations();
+  } else if (event === 'SIGNED_IN' && session) {
+    if (sessionStorage.getItem('slb_recovery') === '1') {
+      toggleForm('reset');
+      applyTranslations();
+      return;
+    }
     window.location.replace('lobby.html');
   }
 });
 
-// Verificar sessão já existente (ex: utilizador volta à página de login)
+// Verificar sessão já existente
 (async () => {
   const { data: { session } } = await sb.auth.getSession();
-  if (session) window.location.replace('lobby.html');
+  if (session && sessionStorage.getItem('slb_recovery') !== '1') {
+    window.location.replace('lobby.html');
+  }
 })();
 
 async function loginGoogle() {
@@ -101,6 +117,7 @@ async function saveNewPassword() {
   const { error } = await sb.auth.updateUser({ password: newPass });
   if (error) showErr(t('auth_reset_error'));
   else {
+    sessionStorage.removeItem('slb_recovery');
     showOk(t('auth_reset_success'));
     setTimeout(() => toggleForm('login'), 2000);
   }
