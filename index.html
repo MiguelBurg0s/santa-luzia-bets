@@ -27,7 +27,21 @@
       <div class="form-group"><label>Email</label><input type="email" id="login-email" placeholder="o.teu@email.com" autocomplete="email"></div>
       <div class="form-group"><label>Password</label><input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" onkeydown="if(event.key==='Enter')loginEmail()"></div>
       <button class="btn-primary" onclick="loginEmail()" style="margin-top:.5rem">Entrar</button>
+      <div class="auth-toggle" style="margin-top:.5rem"><a onclick="toggleForm('forgot')" id="forgot-link"></a></div>
       <div class="auth-toggle">Não tens conta? <a onclick="toggleForm('register')">Regista-te</a></div>
+    </div>
+
+    <div id="reset-form" style="display:none">
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;margin-bottom:1rem" id="reset-title"></div>
+      <div class="form-group"><label id="reset-new-label"></label><input type="password" id="reset-new" autocomplete="new-password"></div>
+      <div class="form-group"><label id="reset-confirm-label"></label><input type="password" id="reset-confirm" autocomplete="new-password"></div>
+      <button class="btn-primary" onclick="saveNewPassword()" style="margin-top:.5rem" id="reset-btn"></button>
+    </div>
+
+    <div id="forgot-form" style="display:none">
+      <div class="form-group"><label id="forgot-email-label"></label><input type="email" id="forgot-email" autocomplete="email"></div>
+      <button class="btn-primary" onclick="sendResetEmail()" style="margin-top:.5rem" id="forgot-submit"></button>
+      <div class="auth-toggle"><a onclick="toggleForm('login')" id="forgot-back-link"></a></div>
     </div>
 
     <div id="register-form" style="display:none">
@@ -78,6 +92,31 @@ async function loginEmail() {
   if (error) showErr('Email ou password incorretos.');
 }
 
+async function saveNewPassword() {
+  const newPass     = document.getElementById('reset-new').value;
+  const confirmPass = document.getElementById('reset-confirm').value;
+  if (newPass !== confirmPass) { showErr(t('auth_reset_mismatch')); return; }
+  if (newPass.length < 6)     { showErr(t('auth_short_pass')); return; }
+  clearMsgs();
+  const { error } = await sb.auth.updateUser({ password: newPass });
+  if (error) showErr(t('auth_reset_error'));
+  else {
+    showOk(t('auth_reset_success'));
+    setTimeout(() => toggleForm('login'), 2000);
+  }
+}
+
+async function sendResetEmail() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) { showErr(t('auth_fill_login')); return; }
+  clearMsgs();
+  const { error } = await sb.auth.resetPasswordForEmail(email, {
+    redirectTo: window.location.origin + '/index.html#reset'
+  });
+  if (error) showErr(t('auth_forgot_error'));
+  else showOk(t('auth_forgot_sent'));
+}
+
 async function registerEmail() {
   const name  = document.getElementById('reg-name').value.trim();
   const email = document.getElementById('reg-email').value.trim();
@@ -92,8 +131,10 @@ async function registerEmail() {
 
 function toggleForm(mode) {
   clearMsgs();
-  document.getElementById('login-form').style.display    = mode==='login'    ? 'block' : 'none';
-  document.getElementById('register-form').style.display = mode==='register' ? 'block' : 'none';
+  ['login','register','forgot','reset'].forEach(m => {
+    const el = document.getElementById(m + '-form');
+    if (el) el.style.display = m === mode ? 'block' : 'none';
+  });
 }
 function showErr(msg) { const e=document.getElementById('err-msg'); e.textContent=msg; e.classList.add('show'); }
 function showOk(msg)  { const e=document.getElementById('ok-msg');  e.textContent=msg; e.classList.add('show'); }
@@ -154,8 +195,34 @@ function applyTranslations() {
   if (regBtn) regBtn.textContent = t('auth_create');
 
   // Toggle links
-  const loginToggle = q('#login-form .auth-toggle');
+  const loginToggle = q('#login-form .auth-toggle:last-of-type');
   if (loginToggle) loginToggle.innerHTML = `${t('auth_no_account')} <a onclick="toggleForm('register')">${t('auth_register')}</a>`;
+
+  // Forgot password form
+  const forgotLink = document.getElementById('forgot-link');
+  if (forgotLink) forgotLink.textContent = t('auth_forgot');
+  const forgotEmailLabel = document.getElementById('forgot-email-label');
+  if (forgotEmailLabel) forgotEmailLabel.textContent = t('auth_email');
+  const forgotEmail = document.getElementById('forgot-email');
+  if (forgotEmail) forgotEmail.placeholder = t('auth_email_ph') || 'o.teu@email.com';
+  const forgotSubmit = document.getElementById('forgot-submit');
+  if (forgotSubmit) forgotSubmit.textContent = t('auth_forgot_send');
+  const forgotBack = document.getElementById('forgot-back-link');
+  if (forgotBack) forgotBack.textContent = t('auth_forgot_back');
+
+  // Reset password form
+  const resetTitle   = document.getElementById('reset-title');
+  const resetNewLbl  = document.getElementById('reset-new-label');
+  const resetConf    = document.getElementById('reset-confirm-label');
+  const resetBtn     = document.getElementById('reset-btn');
+  const resetNew     = document.getElementById('reset-new');
+  const resetConfInp = document.getElementById('reset-confirm');
+  if (resetTitle)   resetTitle.textContent   = t('auth_reset_title');
+  if (resetNewLbl)  resetNewLbl.textContent  = t('auth_reset_new');
+  if (resetConf)    resetConf.textContent    = t('auth_reset_confirm');
+  if (resetBtn)     resetBtn.textContent     = t('auth_reset_btn');
+  if (resetNew)     resetNew.placeholder     = '••••••••';
+  if (resetConfInp) resetConfInp.placeholder = '••••••••';
 
   const regToggle = q('#register-form .auth-toggle');
   if (regToggle) regToggle.innerHTML = `${t('auth_has_account')} <a onclick="toggleForm('login')">${t('auth_login')}</a>`;
