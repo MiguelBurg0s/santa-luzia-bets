@@ -639,19 +639,9 @@ function renderRanking() {
     </div>
   </div>` : '';
 
-  // API status
-  const hasResults = FASES.some(f => wcResults[f.id]?.size > 0);
+  // Hide API status (removed)
   const statusEl = document.getElementById('api-status');
-  if (statusEl) {
-    if (hasResults) {
-      const totalPassed = FASES.reduce((n,f) => n+(wcResults[f.id]?.size||0), 0);
-      statusEl.style.display='flex';
-      statusEl.innerHTML=`<span>&#128200;</span><span>${t('rank_api_live')} <strong>${totalPassed}</strong> ${t('rank_api_teams')} <a onclick="refreshResults()" style="color:var(--gold);cursor:pointer">${t('rank_update')}</a></span>`;
-    } else {
-      statusEl.style.display='flex';
-      statusEl.innerHTML=`<span>&#8987;</span><span>${t('rank_api_waiting')} <a onclick="refreshResults()" style="color:var(--gold);cursor:pointer">${t('rank_api_check')}</a></span>`;
-    }
-  }
+  if (statusEl) statusEl.style.display = 'none';
 
   // List
   document.getElementById('ranking-list').innerHTML = players.map((p,i) => {
@@ -1101,7 +1091,8 @@ async function renderStandings() {
               const isTop2      = i < 2;
               const isThird     = i === 2;
               const isTop8Third = isThird && top8ThirdIds.has(row.team.id);
-              const rowBg       = isTop2 ? 'rgba(245,200,66,0.07)' : isTop8Third ? 'rgba(74,144,217,0.1)' : 'transparent';
+
+              const rowBg = isTop2 ? 'rgba(245,200,66,0.07)' : isTop8Third ? 'rgba(74,144,217,0.1)' : 'transparent';
               const gd      = row.gd > 0 ? '+' + row.gd : row.gd;
               return `<tr style="background:${rowBg};border-bottom:.5px solid rgba(255,255,255,0.04)">
                 <td style="padding:7px 8px;color:${isTop2?'var(--gold)':isTop8Third?'#7ab8f5':'var(--muted)'};font-weight:700;width:24px">${i+1}</td>
@@ -1642,13 +1633,51 @@ function viewPlayerPicks(userId, displayName) {
     return;
   }
 
+  // Calcular status de cada pick usando standingsCache
+  const teamIds = [...new Set(playerPicks.map(p => p.team_id))];
+  let qualified = 0, provisional = 0, stillIn = 0;
+
+  // Construir lookup de playedGames por team id
+  const playedByTeam = {};
+  if (standingsCache) {
+    const total = standingsCache.find(s => s.type === 'TOTAL');
+    (total?.table || []).forEach(row => {
+      playedByTeam[row.team.id] = row.playedGames;
+    });
+  }
+
+  teamIds.forEach(tid => {
+    const inGroups  = wcResults['grupos']?.has(tid);
+    const played    = playedByTeam[tid] ?? 0;
+    const isDefinite = inGroups && played >= 3;
+    const isProv     = inGroups && played < 3;
+    if (isDefinite) qualified++;
+    else if (isProv) provisional++;
+    else stillIn++;
+  });
+
   const byGroup = {};
   playerPicks.forEach(p => {
     if (!byGroup[p.wc_group_id]) byGroup[p.wc_group_id] = [];
     byGroup[p.wc_group_id].push(p);
   });
 
-  content.innerHTML = wcGroups.map(g => {
+  // Status summary
+  const statusHtml = `
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;
+                background:var(--card2);border-radius:10px;border:.5px solid var(--border)">
+      ${qualified > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
+        <span>✅</span><strong>${qualified}</strong> <span style="color:var(--muted)">${t('picks_qualified')}</span>
+      </span>` : ''}
+      ${provisional > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
+        <span>🟡</span><strong>${provisional}</strong> <span style="color:var(--muted)">${t('picks_provisional')}</span>
+      </span>` : ''}
+      ${stillIn > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
+        <span>⚽</span><strong>${stillIn}</strong> <span style="color:var(--muted)">${t('picks_still_in')}</span>
+      </span>` : ''}
+    </div>`;
+
+  content.innerHTML = statusHtml + wcGroups.map(g => {
     const gPicks = (byGroup[g.id] || []).sort((a,b) => a.pick_order - b.pick_order);
     if (!gPicks.length) return '';
     const teams = gPicks.map(p => g.teams.find(tm => tm.id === p.team_id)).filter(Boolean);
@@ -1662,7 +1691,7 @@ function viewPlayerPicks(userId, displayName) {
           <span style="font-size:10px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--gl)':'var(--muted)'};background:${i===0?'rgba(245,200,66,0.12)':i===1?'rgba(45,158,88,0.12)':'var(--card)'};padding:2px 8px;border-radius:6px">
             ${i===0?'1º':i===1?'2º':t('picks_third')}
           </span>
-          ${wcResults['grupos']?.has(tm.id) ? '<span style="font-size:12px">✅</span>' : ''}
+          ${wcResults['grupos']?.has(tm.id) ? (playedByTeam[tm.id] >= 3 ? '<span style="font-size:14px">✅</span>' : '<span style="font-size:14px">🟡</span>') : ''}
         </div>`).join('')}
     </div>`;
   }).join('');
