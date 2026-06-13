@@ -341,16 +341,16 @@ function avatarEl(name, color, size=34, fontSize=13) {
 const GROUP_KICKOFFS = {
   A: new Date('2026-06-11T19:00:00Z'),
   B: new Date('2026-06-12T19:00:00Z'),
-  C: new Date('2026-06-13T19:00:00Z'),
-  D: new Date('2026-06-12T21:00:00Z'),
-  E: new Date('2026-06-14T13:00:00Z'),
-  F: new Date('2026-06-14T16:00:00Z'),
-  G: new Date('2026-06-15T15:00:00Z'),
-  H: new Date('2026-06-15T12:00:00Z'),
-  I: new Date('2026-06-16T15:00:00Z'),
-  J: new Date('2026-06-16T21:00:00Z'),
-  K: new Date('2026-06-17T13:00:00Z'),
-  L: new Date('2026-06-17T16:00:00Z'),
+  C: new Date('2026-06-13T22:00:00Z'),
+  D: new Date('2026-06-13T01:00:00Z'),
+  E: new Date('2026-06-14T17:00:00Z'),
+  F: new Date('2026-06-14T20:00:00Z'),
+  G: new Date('2026-06-15T19:00:00Z'),
+  H: new Date('2026-06-15T16:00:00Z'),
+  I: new Date('2026-06-16T19:00:00Z'),
+  J: new Date('2026-06-17T01:00:00Z'),
+  K: new Date('2026-06-17T17:00:00Z'),
+  L: new Date('2026-06-17T20:00:00Z'),
 };
 
 function isGroupLocked(id)  { const k = GROUP_KICKOFFS[id]; return k ? new Date() >= k : false; }
