@@ -221,16 +221,41 @@ async function fetchWCResults() {
   const standingsData = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
   const allThirds = [];
 
+  // A API devolve standings flat (group: null) — usar getWCGroups() para separar por grupo
+  const groups = (typeof getWCGroups === 'function') ? getWCGroups() : [];
+
+  // Criar lookup de stats por team id a partir do TOTAL standing
+  const statsByTeamId = {};
   for (const standing of (standingsData.standings || [])) {
     if (standing.type !== 'TOTAL') continue;
-    const table = standing.table.filter(row => row.playedGames > 0);
-    if (!table.length) continue;
-    // 1º lugar passa sempre se já jogou
-    if (table[0]) results['grupos'].add(table[0].team.id);
-    // 2º lugar só conta se tiver pontos (ganhou ou empatou algo)
-    if (table[1] && table[1].points > 0) results['grupos'].add(table[1].team.id);
-    // 3os ficam em lista de espera (só se tiverem pontos)
-    if (table[2] && table[2].points > 0) allThirds.push({ team: table[2].team, pts: table[2].points, gd: table[2].goalDifference, gf: table[2].goalsFor });
+    for (const row of (standing.table || [])) {
+      statsByTeamId[row.team.id] = row;
+      if (row.team.tla) statsByTeamId[row.team.tla] = row;
+    }
+  }
+
+  for (const g of groups) {
+    // Ordenar equipas do grupo pelos stats actuais
+    const rows = g.teams.map(team => {
+      const stats = statsByTeamId[team.id] || statsByTeamId[team.tla];
+      return {
+        id:      team.id,
+        pts:     stats?.points ?? 0,
+        gd:      stats?.goalDifference ?? 0,
+        gf:      stats?.goalsFor ?? 0,
+        played:  stats?.playedGames ?? 0,
+      };
+    }).filter(r => r.played > 0)
+      .sort((a,b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
+
+    if (!rows.length) continue;
+
+    // 1º passa sempre
+    if (rows[0]) results['grupos'].add(rows[0].id);
+    // 2º só se tiver pontos
+    if (rows[1] && rows[1].pts > 0) results['grupos'].add(rows[1].id);
+    // 3º fica em lista de espera
+    if (rows[2] && rows[2].pts > 0) allThirds.push({ team: { id: rows[2].id }, pts: rows[2].pts, gd: rows[2].gd, gf: rows[2].gf });
   }
 
   // Melhores 8 terceiros classificados passam (top 8 por pts, depois GD, depois GF)
