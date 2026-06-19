@@ -49,13 +49,32 @@
     <!-- APOSTAS -->
     <div id="screen-apostas" class="screen" style="display:none">
       <div id="copy-bets-banner" style="display:none"></div>
-      <div id="lock-notice"></div>
-      <div class="nota"><span>⭐</span><span id="bets-note-text"></span></div>
-      <div id="groups-container"></div>
-      <div style="margin-top:8px;text-align:center;font-size:12px;color:var(--muted)" data-i18n="bets_auto_save"></div>
+
+      <!-- Expander: Fase de Grupos -->
+      <div id="expander-grupos" style="margin-bottom:8px">
+        <button onclick="toggleExpander('grupos')"
+          style="width:100%;display:flex;align-items:center;justify-content:space-between;
+                 background:var(--card);border:.5px solid var(--border);border-radius:12px;
+                 padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif">
+          <div style="display:flex;align-items:center;gap:8px">
+            <i class="ti ti-list-check" style="font-size:16px;color:var(--gold)"></i>
+            <span style="font-size:14px;font-weight:600;color:var(--text)" data-i18n="tab_group_stage"></span>
+            <span style="font-size:10px;color:var(--red);font-weight:600">● fechado</span>
+          </div>
+          <i class="ti ti-chevron-down" id="chevron-grupos" style="font-size:16px;color:var(--muted);transition:transform .2s"></i>
+        </button>
+        <div id="content-grupos" style="margin-top:6px;display:none">
+          <div class="nota"><span>⭐</span><span id="bets-note-text"></span></div>
+          <div id="groups-container"></div>
+          <div style="margin-top:8px;text-align:center;font-size:12px;color:var(--muted)" data-i18n="bets_auto_save"></div>
+        </div>
+      </div>
+
+      <!-- Expanders: Fases Eliminatórias -->
+      <div id="ko-expanders"></div>
     </div>
 
-    <!-- RANKING -->
+<!-- RANKING -->
     <div id="screen-ranking" class="screen" style="display:none">
       <div id="prize-banner"></div>
       <div id="score-box"></div>
@@ -96,7 +115,6 @@
       <div class="rule-card"><div class="rule-icon">📋</div><div style="width:100%"><div class="rule-title" data-i18n="rules_phases"></div>
         <table class="pts-table">
           <tr><td id="rule-group-stage">Passa a fase de grupos</td><td>1 pt</td></tr>
-          <tr><td id="rule-r32">Passa os 32avos de final</td><td>1 pt</td></tr>
           <tr><td id="rule-r16">Passa os 16avos de final</td><td>2 pts</td></tr>
           <tr><td id="rule-r8">Passa os 8avos de final</td><td>2 pts</td></tr>
           <tr><td id="rule-qf">Passa os quartos de final</td><td>2 pts</td></tr>
@@ -105,7 +123,7 @@
         </table>
       </div></div>
       <div class="rule-card"><div class="rule-icon">⭐</div><div><div class="rule-title" data-i18n="rules_thirds_title"></div>
-        <div class="rule-desc" id="rule-thirds-desc">Os 2 primeiros de cada grupo (24) + os <strong>8 melhores 3ºs</strong> = 32 equipas nos 32avos. Podes apostar num 3º — se for dos melhores 8, ganhas o ponto!</div>
+        <div class="rule-desc" id="rule-thirds-desc">Os 2 primeiros de cada grupo (24) + os <strong>8 melhores 3ºs</strong> = 32 equipas nos 16avos. Podes apostar num 3º — se for dos melhores 8, ganhas o ponto!</div>
       </div></div>
       <div class="rule-card"><div class="rule-icon">🤖</div><div><div class="rule-title" data-i18n="rules_auto_title"></div>
         <div class="rule-desc"><span id="rule-auto-desc">Os resultados sao carregados automaticamente da API oficial <strong>football-data.org</strong> assim que os jogos terminam.</span></div>
@@ -312,6 +330,7 @@ let realtimeSubs   = [];
   buildGroupsDOM();
   updateAllGroups();
   renderLockNotice();
+  renderKOExpanders();
   renderCopyBetsBanner();
 
   window.addEventListener('hashchange', onHashChange);
@@ -478,8 +497,16 @@ function updateGroupUI(id) {
     const thirdsLimitReached = totalThirdsCount() >= 8;
     btn.disabled = locked || (atLimit && !sel) || (wouldBeThird && thirdsLimitReached);
     if (ob) {
-      ob.style.display = sel ? 'inline' : 'none';
-      ob.textContent   = sel ? `#${picks[pi].pick_order}` : '';
+      ob.style.display = sel ? 'inline-flex' : 'none';
+      if (sel) {
+        const inGroups  = wcResults['grupos']?.has(tm.id);
+        ob.style.alignItems = 'center';
+        ob.style.gap = '2px';
+        ob.style.flexDirection = 'row';
+        ob.innerHTML = inGroups 
+          ? `<span style="font-size:13px;line-height:1;margin-right:1px">🟡</span><span>#${picks[pi].pick_order}</span>`
+          : `<span>#${picks[pi].pick_order}</span>`;
+      }
     }
   });
 }
@@ -492,23 +519,7 @@ function toggleCard(bodyId, chevId) {
 }
 
 function renderLockNotice() {
-  const el = document.getElementById('lock-notice');
-  if (!el) return;
-  const upcoming = wcGroups.filter(g => !isGroupLocked(g.id) && GROUP_KICKOFFS[g.id])
-    .sort((a,b) => GROUP_KICKOFFS[a.id]-GROUP_KICKOFFS[b.id]);
-  if (!upcoming.length) {
-    el.innerHTML = `<div class="nota" style="background:rgba(232,85,85,0.07);border-color:rgba(232,85,85,0.2);margin-bottom:10px">
-      <span>&#128274;</span><span style="color:var(--red)"><strong>Apostas encerradas</strong> &mdash; todos os grupos ja comecaram.</span></div>`;
-    return;
-  }
-  const next = upcoming[0];
-  const soon = (GROUP_KICKOFFS[next.id]-new Date()) < 86400000;
-  el.innerHTML = `<div class="nota" style="${soon?'background:rgba(245,200,66,0.07);border-color:rgba(245,200,66,0.25)':''};margin-bottom:10px">
-    <span>${soon?'&#9888;':'&#8987;'}</span>
-    <span>${soon
-      ? `<strong style="color:var(--gold)">${t('group_label')} ${next.id} ${t('bets_closes_soon')}</strong> ${timeUntilLock(next.id)} &middot; ${kickoffLabel(next.id)}`
-      : `${t('bets_next_close')} <strong>${t('group_label')} ${next.id}</strong> &mdash; ${timeUntilLock(next.id)} &middot; ${kickoffLabel(next.id)}`
-    }</span></div>`;
+  // Removido — substituído pelos expanders na tab Apostas
 }
 
 async function pickTeam(wcGroupId, teamId) {
@@ -834,7 +845,7 @@ const MATCHES_TTL   = 5 * 60 * 1000; // cache 5 min
 
 const STAGE_LABELS = {
   'GROUP_STAGE':    'matches_stage_groups',
-  'LAST_32':        'matches_stage_r32',
+  'LAST_32':        'matches_stage_r16',
   'LAST_16':        'matches_stage_r16',
   'QUARTER_FINALS': 'matches_stage_qf',
   'SEMI_FINALS':    'matches_stage_sf',
@@ -1130,6 +1141,246 @@ async function renderStandings() {
     console.error('standings error:', e);
     el.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--red);font-size:13px">Erro ao carregar classificação</div>`;
   }
+}
+
+
+// -- EXPANDERS ----------------------------------------
+const expanderState = { grupos: false }; // grupos sempre fechado — apostas encerradas
+
+function toggleExpander(id) {
+  expanderState[id] = !expanderState[id];
+  const content  = document.getElementById('content-' + id);
+  const chevron  = document.getElementById('chevron-' + id);
+  if (content)  content.style.display = expanderState[id] ? 'block' : 'none';
+  if (chevron)  chevron.style.transform = expanderState[id] ? 'rotate(0deg)' : 'rotate(-90deg)';
+}
+
+async function renderKOExpanders() {
+  const container = document.getElementById('ko-expanders');
+  if (!container) return;
+
+  const matches = await fetchKOMatches();
+  const { data: picks } = await sb.from('ko_picks')
+    .select('*')
+    .eq('user_id', currentUser.id)
+    .eq('bet_group_id', betGroup.id);
+
+  koPicks = {};
+  (picks || []).forEach(p => { koPicks[p.match_id] = p.team_id; });
+
+  const stages = [
+    { key: 'LAST_32',        label: 'ko_r16', pts: 2, icon: 'ti-tournament' },
+    { key: 'LAST_16',        label: 'ko_r8',  pts: 2, icon: 'ti-tournament' },
+    { key: 'QUARTER_FINALS', label: 'ko_qf',  pts: 2, icon: 'ti-tournament' },
+    { key: 'SEMI_FINALS',    label: 'ko_sf',  pts: 3, icon: 'ti-trophy'     },
+    { key: 'FINAL',          label: 'ko_final',pts: 3, icon: 'ti-star'      },
+  ];
+
+  // Reset KO expander states para recalcular com base nos jogos actuais
+  const koStageKeys = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
+  koStageKeys.forEach(k => delete expanderState[k]);
+
+  // Determinar qual stage abrir por defeito — o primeiro com jogos ainda não locked
+  const nextOpenStage = stages.find(s => {
+    const sm = matches.filter(m => m.stage === s.key);
+    return sm.length > 0 && sm.some(m => !isKOMatchLocked(m.utcDate));
+  })?.key || null;
+
+  container.innerHTML = stages.map(stage => {
+    const stageMatches = matches.filter(m => m.stage === stage.key)
+      .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
+    if (!stageMatches.length) return '';
+
+    const picksInStage = stageMatches.filter(m => koPicks[m.id]).length;
+    const totalInStage = stageMatches.length;
+    const isOpen       = stageMatches.some(m => !isKOMatchLocked(m.utcDate));
+
+    // Só abrir o próximo stage disponível
+    if (expanderState[stage.key] === undefined) {
+      expanderState[stage.key] = stage.key === nextOpenStage;
+    }
+
+    const isExpanded = expanderState[stage.key];
+
+    return `<div style="margin-bottom:8px" id="expander-${stage.key}">
+      <button onclick="toggleExpander('${stage.key}')"
+        style="width:100%;display:flex;align-items:center;justify-content:space-between;
+               background:var(--card);border:.5px solid var(--border);border-radius:12px;
+               padding:12px 16px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text)">
+        <div style="display:flex;align-items:center;gap:8px">
+          <i class="ti ${stage.icon}" style="font-size:16px;color:var(--gold)"></i>
+          <span style="font-size:14px;font-weight:600;color:var(--text)">${t(stage.label)}</span>
+          ${picksInStage > 0 ? `<span style="font-size:11px;color:var(--gl);background:rgba(45,158,88,0.1);padding:1px 7px;border-radius:6px">${picksInStage}/${totalInStage}</span>` : ''}
+          ${isOpen ? `<span style="font-size:10px;color:var(--gl);font-weight:600">● aberto</span>` : `<span style="font-size:10px;color:var(--red);font-weight:600">● fechado</span>`}
+        </div>
+        <i class="ti ti-chevron-down" id="chevron-${stage.key}"
+           style="font-size:16px;color:var(--muted);transition:transform .2s;transform:rotate(${isExpanded?'0':'-90'}deg)"></i>
+      </button>
+      <div id="content-${stage.key}" style="margin-top:6px;display:${isExpanded?'block':'none'}">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${stageMatches.map(m => renderKOMatch(m)).join('')}
+        </div>
+        <div style="margin-top:8px;text-align:center;font-size:12px;color:var(--muted)">${t('ko_auto_save')}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+
+// -- APOSTAS ELIMINATÓRIAS ----------------------------
+let koMatches  = null;  // jogos KO da API
+let koPicks    = {};    // { matchId: teamId } — pick do utilizador
+
+async function fetchKOMatches() {
+  if (koMatches) return koMatches;
+  const data = await fdFetch('/competitions/WC/matches?season=2026&stage=LAST_32,LAST_16,QUARTER_FINALS,SEMI_FINALS,FINAL');
+  koMatches = (data.matches || []).filter(m => m.stage !== 'GROUP_STAGE');
+  return koMatches;
+}
+
+async function renderKO() {
+  const container = document.getElementById('ko-container');
+  if (!container) return;
+  container.innerHTML = '<div class="spinner"></div>';
+
+  try {
+    const matches = await fetchKOMatches();
+
+    // Carregar picks KO do utilizador
+    const { data: picks } = await sb.from('ko_picks')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .eq('bet_group_id', betGroup.id);
+
+    koPicks = {};
+    (picks || []).forEach(p => { koPicks[p.match_id] = p.team_id; });
+
+    const stages = [
+      { key: 'LAST_32',        label: 'ko_r16', pts: 2 },
+      { key: 'LAST_16',        label: 'ko_r8',  pts: 2 },
+      { key: 'QUARTER_FINALS', label: 'ko_qf',  pts: 2 },
+      { key: 'SEMI_FINALS',    label: 'ko_sf',  pts: 3 },
+      { key: 'FINAL',          label: 'ko_final',pts: 3 },
+    ];
+
+    container.innerHTML = stages.map(stage => {
+      const stageMatches = matches.filter(m => m.stage === stage.key)
+        .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
+      if (!stageMatches.length) return '';
+
+      return `<div style="margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="section-title" style="margin:0">${t(stage.label)}</div>
+          <span style="font-size:11px;color:var(--gold);background:rgba(245,200,66,0.1);padding:2px 8px;border-radius:6px;font-weight:600">${stage.pts} pt${stage.pts>1?'s':''}</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${stageMatches.map(m => renderKOMatch(m)).join('')}
+        </div>
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    console.error('renderKO error:', e);
+    container.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--red)">Erro ao carregar jogos</div>`;
+  }
+}
+
+function renderKOMatch(m) {
+  const locked    = isKOMatchLocked(m.utcDate);
+  const homeId    = m.homeTeam?.id || null;
+  const awayId    = m.awayTeam?.id || null;
+  const homeTeam  = homeId ? (findTeamById(homeId) || findTeamByTla(m.homeTeam?.tla)) : null;
+  const awayTeam  = awayId ? (findTeamById(awayId) || findTeamByTla(m.awayTeam?.tla)) : null;
+  const ph        = KO_R32_PLACEHOLDERS[m.id] || {};
+  const isThirdPH = s => s && s.includes('3º');
+
+  // Nome: equipa real se conhecida, placeholder se não
+  const homeName  = homeTeam ? t(homeTeam.nameKey) : (ph.home || t('ko_tbd'));
+  const awayName  = awayTeam ? t(awayTeam.nameKey) : (ph.away || t('ko_tbd'));
+  const homeFlag  = homeTeam ? flagImg(homeTeam.flag_code, 22)
+                             : (ph.home && !isThirdPH(ph.home) ? '<span style="font-size:18px;opacity:.4">🏴</span>'
+                             : '<span style="font-size:15px;opacity:.5">?</span>');
+  const awayFlag  = awayTeam ? flagImg(awayTeam.flag_code, 22)
+                             : (ph.away && !isThirdPH(ph.away) ? '<span style="font-size:18px;opacity:.4">🏴</span>'
+                             : '<span style="font-size:15px;opacity:.5">?</span>');
+
+  const picked    = koPicks[m.id];
+  const isFinished = m.status === 'FINISHED';
+  const isLive    = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+  const homeScore = isFinished ? (m.score?.fullTime?.home ?? 0) : (isLive ? (m.score?.fullTime?.home ?? m.score?.halfTime?.home ?? '') : '');
+  const awayScore = isFinished ? (m.score?.fullTime?.away ?? 0) : (isLive ? (m.score?.fullTime?.away ?? m.score?.halfTime?.away ?? '') : '');
+  const winner    = isFinished ? (m.score?.winner === 'HOME_TEAM' ? homeId : m.score?.winner === 'AWAY_TEAM' ? awayId : null) : null;
+
+  const kickoff   = new Date(m.utcDate).toLocaleString(
+    getLang() === 'pt' ? 'pt-PT' : getLang() === 'es' ? 'es-ES' : 'en-GB',
+    { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Lisbon' }
+  );
+
+  const teamBtn = (id, name, flag, score, isHome) => {
+    const isPicked  = picked === id;
+    const isWinner  = winner === id;
+    const isLoser   = isFinished && winner && winner !== id && id;
+    const canClick  = id && !locked;
+    const isTBD     = !id;
+    return `<button onclick="${canClick ? `pickKO(${m.id}, ${id})` : ''}"
+      ${isTBD || locked ? 'disabled' : ''}
+      style="display:flex;align-items:center;gap:8px;padding:10px 12px;width:100%;
+             background:${isPicked ? 'rgba(45,158,88,0.15)' : isWinner ? 'rgba(45,158,88,0.08)' : 'var(--card2)'};
+             border:.5px solid ${isPicked ? 'var(--gl)' : isWinner ? 'rgba(45,158,88,0.35)' : 'var(--border2)'};
+             border-radius:10px;cursor:${canClick ? 'pointer' : 'default'};
+             opacity:${isLoser ? '0.45' : '1'};transition:all .15s;
+             font-family:'DM Sans',sans-serif;text-align:left">
+      ${flag}
+      <span style="flex:1;font-size:13px;font-weight:${isPicked||isWinner?'600':'400'};
+                   color:${isTBD?'var(--muted)':'var(--text)'};
+                   white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
+      ${(isFinished||isLive) && score !== '' ? `<span style="font-size:15px;font-weight:700;color:${isLive?'var(--red)':'var(--text)'};min-width:16px;text-align:right">${score}</span>` : ''}
+      ${isPicked ? '<span style="font-size:12px;color:var(--gl);flex-shrink:0">✓</span>' : ''}
+    </button>`;
+  };
+
+  return `<div style="background:var(--card);border:.5px solid ${isLive?'var(--red)':picked?'rgba(45,158,88,0.2)':'var(--border)'};
+                      border-radius:12px;padding:12px 14px;transition:border-color .2s">
+    <div style="font-size:10px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
+      <span style="display:flex;align-items:center;gap:5px">
+        ${isLive ? `<span style="color:var(--red);font-weight:700;animation:pulse 1s infinite">${t('matches_live')}</span>` :
+          isFinished ? `<span>${t('matches_finished')}</span>` :
+          locked ? `<span>${t('ko_locked')}</span>` :
+          `<span style="color:var(--gl)">${t('ko_pick_winner')}</span>`}
+      </span>
+      <span>${kickoff}</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${teamBtn(homeId, homeName, homeFlag, homeScore, true)}
+      <div style="text-align:center;font-size:10px;color:var(--muted);line-height:1">vs</div>
+      ${teamBtn(awayId, awayName, awayFlag, awayScore, false)}
+    </div>
+  </div>`;
+}
+
+async function pickKO(matchId, teamId) {
+  if (!teamId || isKOMatchLocked(koMatches?.find(m => m.id === matchId)?.utcDate)) return;
+
+  // Toggle — se já tinha este pick, remover
+  if (koPicks[matchId] === teamId) {
+    await sb.from('ko_picks').delete()
+      .eq('user_id', currentUser.id)
+      .eq('bet_group_id', betGroup.id)
+      .eq('match_id', matchId);
+    delete koPicks[matchId];
+  } else {
+    await sb.from('ko_picks').upsert({
+      user_id:      currentUser.id,
+      bet_group_id: betGroup.id,
+      match_id:     matchId,
+      team_id:      teamId,
+    }, { onConflict: 'user_id,bet_group_id,match_id' });
+    koPicks[matchId] = teamId;
+  }
+
+  // Re-render apenas o match card
+  koMatches = null; // invalidar para re-fetch
+  renderKO();
 }
 
 
@@ -1622,7 +1873,7 @@ async function executeCopyBets(sourceGroupId) {
 
 
 // Ver apostas de um jogador
-function viewPlayerPicks(userId, displayName) {
+async function viewPlayerPicks(userId, displayName) {
   const prof    = groupMembers.find(m => m.profiles.id === userId)?.profiles;
   const titleEl = document.getElementById('picks-viewer-title');
   if (titleEl && prof) {
@@ -1684,6 +1935,61 @@ function viewPlayerPicks(userId, displayName) {
       </span>` : ''}
     </div>`;
 
+  // Buscar ko_picks do jogador
+  const { data: koPicksData } = await sb.from('ko_picks')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('bet_group_id', betGroup.id);
+
+  const userKoPicks = koPicksData || [];
+
+  // Agrupar ko_picks por stage usando koMatches (se disponível)
+  let koSection = '';
+  if (userKoPicks.length > 0 && koMatches) {
+    const stageOrder = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
+    const stageLabels = { LAST_32:'ko_r16', LAST_16:'ko_r8', QUARTER_FINALS:'ko_qf', SEMI_FINALS:'ko_sf', FINAL:'ko_final' };
+
+    const koByStage = {};
+    userKoPicks.forEach(kp => {
+      const match = koMatches.find(m => m.id === kp.match_id);
+      if (!match) return;
+      if (!koByStage[match.stage]) koByStage[match.stage] = [];
+      koByStage[match.stage].push({ pick: kp, match });
+    });
+
+    const koRows = stageOrder.map(stage => {
+      const rows = koByStage[stage];
+      if (!rows?.length) return '';
+      return `<div style="margin-bottom:10px">
+        <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">${t(stageLabels[stage])}</div>
+        ${rows.map(({ pick, match }) => {
+          const team = findTeamById(pick.team_id);
+          const name = team ? t(team.nameKey) : pick.team_id;
+          const flag = team ? flagImg(team.flag_code, 22) : '<span style="font-size:18px">🏳</span>';
+          const isFinished = match.status === 'FINISHED';
+          const winner = isFinished ? (match.score?.winner === 'HOME_TEAM' ? match.homeTeam?.id : match.awayTeam?.id) : null;
+          const correct = winner && winner === pick.team_id;
+          const wrong   = winner && winner !== pick.team_id;
+          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                              background:${correct?'rgba(45,158,88,0.1)':wrong?'rgba(232,85,85,0.05)':'var(--card2)'};
+                              border-radius:9px;margin-bottom:5px;
+                              border:.5px solid ${correct?'rgba(45,158,88,0.3)':wrong?'rgba(232,85,85,0.2)':'var(--border)'}">
+            ${flag}
+            <span style="flex:1;font-size:13px;opacity:${wrong?'0.5':'1'}">${name}</span>
+            ${correct ? '<span style="font-size:14px">✅</span>' : wrong ? '<span style="font-size:14px">❌</span>' : ''}
+          </div>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+
+    if (koRows.trim()) {
+      koSection = `<div style="margin-top:16px;padding-top:14px;border-top:.5px solid var(--border)">
+        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:10px">⚡ ${t('ko_title')}</div>
+        ${koRows}
+      </div>`;
+    }
+  }
+
   content.innerHTML = statusHtml + wcGroups.map(g => {
     const gPicks = (byGroup[g.id] || []).sort((a,b) => a.pick_order - b.pick_order);
     if (!gPicks.length) return '';
@@ -1701,7 +2007,7 @@ function viewPlayerPicks(userId, displayName) {
           ${wcResults['grupos']?.has(tm.id) ? (playedByTeam[tm.id] >= 3 ? '<span style="font-size:14px">✅</span>' : '<span style="font-size:14px">🟡</span>') : ''}
         </div>`).join('')}
     </div>`;
-  }).join('');
+  }).join('') + koSection;
 
   openModal('modal-picks-viewer');
 }
@@ -1720,7 +2026,6 @@ function applyTranslations() {
   // Regras screen - traduzir tabela de pontos
   const ruleRows = {
     'rule-group-stage': 'rules_group_stage',
-    'rule-r32':         'rules_r32',
     'rule-r16':         'rules_r16',
     'rule-r8':          'rules_r8',
     'rule-qf':          'rules_qf',
@@ -1750,6 +2055,7 @@ function changeLang(lang) {
   buildGroupsDOM();
   updateAllGroups();
   renderLockNotice();
+  renderKOExpanders();
   renderCopyBetsBanner();
   // Actualizar header meta (ex: "6 membros")
   const metaEl = document.getElementById('group-meta');

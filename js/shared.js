@@ -18,7 +18,6 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // -- FASES ------------------------------------------
 const FASES = [
   { id:'grupos',  label:'Fase de Grupos',   pts:1, max:32 },
-  { id:'32avos',  label:'32avos de Final',  pts:1, max:16 },
   { id:'16avos',  label:'16avos de Final',  pts:2, max:8  },
   { id:'8avos',   label:'8avos de Final',   pts:2, max:4  },
   { id:'quartos', label:'Quartos de Final', pts:2, max:2  },
@@ -29,7 +28,7 @@ const FASES = [
 // Mapear stage da API -> fase id
 const STAGE_MAP = {
   'GROUP_STAGE'    : 'grupos',
-  'LAST_32'        : '32avos',
+  'LAST_32'        : '16avos',
   'LAST_16'        : '16avos',
   'QUARTER_FINALS' : 'quartos',
   'SEMI_FINALS'    : 'meias',
@@ -156,7 +155,6 @@ window.testMode = function(active) {
   if (active) {
     sessionStorage.setItem('testResults', JSON.stringify({
       grupos:  [769, 774, 772, 764, 770, 765, 786, 762, 773, 760, 805, 768],
-      '32avos':[769, 764, 770, 765, 786, 762, 773, 760, 805, 768, 759, 788],
       '16avos':[769, 764, 770, 765, 773, 760, 805, 768],
       '8avos': [769, 764, 770, 773, 760],
       quartos: [769, 770, 760],
@@ -271,7 +269,7 @@ async function fetchWCResults() {
 
 // Proxima fase apos uma vitoria num jogo
 function nextFaseId(currentStage) {
-  const order = ['grupos','32avos','16avos','8avos','quartos','meias','campeao'];
+  const order = ['grupos','16avos','8avos','quartos','meias','campeao'];
   const idx = order.indexOf(currentStage);
   return idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
 }
@@ -305,6 +303,60 @@ function tlaToFlagCode(tla, name) {
     'ENG':'gb-eng', 'CRO':'hr', 'PAN':'pa', 'GHA':'gh',
   };
   return map[tla] || tla?.toLowerCase().slice(0,2) || 'un';
+}
+
+// -- FASES ELIMINATÓRIAS ------------------------------
+// IDs e kickoffs dos jogos dos 16avos (LAST_32 na API)
+const KO_R16_MATCHES = [
+  { id: 537417, utcDate: '2026-06-28T19:00:00Z' },
+  { id: 537423, utcDate: '2026-06-29T17:00:00Z' },
+  { id: 537415, utcDate: '2026-06-29T20:30:00Z' },
+  { id: 537418, utcDate: '2026-06-30T01:00:00Z' },
+  { id: 537424, utcDate: '2026-06-30T17:00:00Z' },
+  { id: 537416, utcDate: '2026-06-30T21:00:00Z' },
+  { id: 537425, utcDate: '2026-07-01T01:00:00Z' },
+  { id: 537426, utcDate: '2026-07-01T16:00:00Z' },
+  { id: 537422, utcDate: '2026-07-01T20:00:00Z' },
+  { id: 537421, utcDate: '2026-07-02T00:00:00Z' },
+  { id: 537420, utcDate: '2026-07-02T19:00:00Z' },
+  { id: 537419, utcDate: '2026-07-02T23:00:00Z' },
+  { id: 537429, utcDate: '2026-07-03T03:00:00Z' },
+  { id: 537428, utcDate: '2026-07-03T18:00:00Z' },
+  { id: 537427, utcDate: '2026-07-03T22:00:00Z' },
+  { id: 537430, utcDate: '2026-07-04T01:30:00Z' },
+];
+
+// Matchups fixos dos 32avos — placeholders enquanto equipas não são conhecidas
+const KO_R32_PLACEHOLDERS = {
+  537417: { home: '2º Grupo A', away: '2º Grupo B' },
+  537423: { home: '1º Grupo C', away: '2º Grupo F' },
+  537415: { home: '1º Grupo F', away: '2º Grupo C' },
+  537418: { home: '2º Grupo E', away: '2º Grupo I' },
+  537424: { home: '1º Grupo I', away: '3º C/D/F/G/H' },
+  537416: { home: '1º Grupo A', away: '3º C/E/F/H/I' },
+  537425: { home: '1º Grupo L', away: '3º E/H/I/J/K' },
+  537426: { home: '1º Grupo G', away: '3º A/E/H/I/J' },
+  537422: { home: '1º Grupo D', away: '3º B/E/F/I/J' },
+  537421: { home: '2º Grupo G', away: '2º Grupo H' },
+  537420: { home: '1º Grupo E', away: '3º A/B/C/D/F' },
+  537419: { home: '2º Grupo D', away: '2º Grupo J' },
+  537429: { home: '1º Grupo K', away: '3º D/E/I/J/L' },
+  537428: { home: '1º Grupo J', away: '2º Grupo H' },
+  537427: { home: '1º Grupo H', away: '2º Grupo K' },
+  537430: { home: '1º Grupo B', away: '2º Grupo L' },
+};
+
+// Mapeamento stage API → fase id (já existe STAGE_MAP mas adicionar KO stages)
+const KO_STAGE_LABELS = {
+  'LAST_32':        'ko_r16',
+  'LAST_16':        'ko_r8',
+  'QUARTER_FINALS': 'ko_qf',
+  'SEMI_FINALS':    'ko_sf',
+  'FINAL':          'ko_final',
+};
+
+function isKOMatchLocked(utcDate) {
+  return new Date() >= new Date(utcDate);
 }
 
 // -- FLAGS & AVATAR ---------------------------------
