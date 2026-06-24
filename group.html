@@ -89,8 +89,7 @@
       <div class="card" id="ranking-list"></div>
       <div class="section-title" style="margin-top:1.5rem" data-i18n="rank_invite"></div>
       <div id="invite-section"></div>
-      <div class="section-title" style="margin-top:1.5rem" data-i18n="rank_your_bets"></div>
-      <div class="card" id="picks-summary"></div>
+
     </div>
 
     <!-- JOGOS -->
@@ -258,6 +257,7 @@ let isAdmin        = false;
 let wcGroups       = [];    // [{id, label, teams:[{id,name,flag_code,crest}]}]
 let myPicks        = {};    // { wc_group_id: [{team_id, pick_order}] }
 let allPicks       = [];
+let allKoPicks     = [];    // ko_picks de todos os jogadores do grupo
 let groupMembers   = [];
 let wcResults      = {};    // { faseId: Set<teamId> } - vem da API
 let lastResultsFetch = 0;
@@ -274,10 +274,11 @@ let realtimeSubs   = [];
 
   setLoadingMsg(t('loading_profile'));
 
-  const [profileRes, memberRes, picksRes] = await Promise.all([
+  const [profileRes, memberRes, picksRes, koPicksRes] = await Promise.all([
     sb.from('profiles').select('*').eq('id', currentUser.id).single(),
     sb.from('bet_group_members').select('*, bet_groups(*, prize_text, prize_image_url), profiles(*)').eq('bet_group_id', bgId),
     sb.from('picks').select('*').eq('bet_group_id', bgId),
+    sb.from('ko_picks').select('*').eq('bet_group_id', bgId),
   ]);
 
   currentProfile = profileRes.data || await getOrCreateProfile(currentUser);
@@ -290,6 +291,7 @@ let realtimeSubs   = [];
   isAdmin      = myMembership.is_admin;
   groupMembers = memberRes.data||[];
   allPicks     = picksRes.data||[];
+  allKoPicks   = koPicksRes.data||[];
 
   // Parse my picks
   allPicks.filter(p => p.user_id === currentUser.id).forEach(p => {
@@ -631,9 +633,12 @@ function calcScore(pickedTeamIds) {
 
 function renderRanking() {
   const players = groupMembers.map(m => {
-    const prof    = m.profiles;
-    const teamIds = [...new Set(allPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
-    return { ...prof, score:calcScore(teamIds), teamIds, isMe:prof.id===currentUser.id, is_admin:m.is_admin };
+    const prof       = m.profiles;
+    const teamIds    = [...new Set(allPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
+    const koTeamIds  = [...new Set(allKoPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
+    const allTeamIds = [...new Set([...teamIds, ...koTeamIds])];
+    const totalPicks = allPicks.filter(p => p.user_id===prof.id).length + allKoPicks.filter(p => p.user_id===prof.id).length;
+    return { ...prof, score:calcScore(allTeamIds), teamIds:allTeamIds, totalPicks, isMe:prof.id===currentUser.id, is_admin:m.is_admin };
   }).sort((a,b) => b.score-a.score || (a.isMe?-1:1));
 
   renderPrizeBanner();
@@ -645,7 +650,7 @@ function renderRanking() {
     <div class="big-pts">${me.score}</div>
     <div>
       <div style="font-size:14px;font-weight:600">${t('rank_your_score')}</div>
-      <div style="font-size:12px;color:var(--muted);margin-top:3px">${me.teamIds.length} ${t('rank_selections')}</div>
+      <div style="font-size:12px;color:var(--muted);margin-top:3px">${me.totalPicks} ${t('rank_selections')}</div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px">${t('rank_max')} ${me.teamIds.length*14} ${t('rank_pts')}</div>
     </div>
   </div>` : '';
@@ -670,7 +675,7 @@ function renderRanking() {
       </div>
       <div style="text-align:right;flex-shrink:0">
         <div class="rank-pts">${p.score} <span>pts</span></div>
-        <div style="font-size:10px;color:var(--muted)">${p.teamIds.length} sel.</div>
+        <div style="font-size:10px;color:var(--muted)">${p.totalPicks} sel.</div>
       </div>
     </div>`;
   }).join('') || `<div style="padding:1rem;text-align:center;color:var(--muted);font-size:13px">${t('rank_no_players')}</div>`;
@@ -693,22 +698,6 @@ function renderRanking() {
       </button>
     </div>`;
 
-  // My picks summary
-  document.getElementById('picks-summary').innerHTML = wcGroups.map(g => {
-    const gp    = (myPicks[g.id]||[]).sort((a,b)=>a.pick_order-b.pick_order);
-    const teams = gp.map(p => g.teams.find(tm=>tm.id===p.team_id)).filter(Boolean);
-    return `<div class="stat-row">
-      <span class="label">${t('rank_group')} ${g.id}</span>
-      <span style="display:flex;flex-direction:column;gap:3px;align-items:flex-end">
-        ${teams.length ? teams.map((tm,i)=>`
-          <span style="display:flex;align-items:center;gap:5px">
-            ${flagImg(tm.flag_code,16)}
-            <span>${t(tm.nameKey)}</span>
-            ${i===2?'<span style="font-size:10px;color:var(--muted)">(3º?)</span>':''}
-          </span>`).join('') : '<span style="color:var(--muted)">-</span>'}
-      </span>
-    </div>`;
-  }).join('');
 }
 
 // -- SETTINGS ----------------------------------------
@@ -1370,6 +1359,7 @@ async function pickKO(matchId, teamId) {
       .eq('bet_group_id', betGroup.id)
       .eq('match_id', matchId);
     delete koPicks[matchId];
+    allKoPicks = allKoPicks.filter(p => !(p.user_id===currentUser.id && p.match_id===matchId));
   } else {
     await sb.from('ko_picks').upsert({
       user_id:      currentUser.id,
@@ -1378,6 +1368,8 @@ async function pickKO(matchId, teamId) {
       team_id:      teamId,
     }, { onConflict: 'user_id,bet_group_id,match_id' });
     koPicks[matchId] = teamId;
+    allKoPicks = allKoPicks.filter(p => !(p.user_id===currentUser.id && p.match_id===matchId));
+    allKoPicks.push({ user_id:currentUser.id, bet_group_id:betGroup.id, match_id:matchId, team_id:teamId });
   }
 
   // Re-render os expanders com os picks actualizados (sem re-fetch à API nem à BD)
