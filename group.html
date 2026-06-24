@@ -1155,18 +1155,20 @@ function toggleExpander(id) {
   if (chevron)  chevron.style.transform = expanderState[id] ? 'rotate(0deg)' : 'rotate(-90deg)';
 }
 
-async function renderKOExpanders() {
+async function renderKOExpanders(skipPicksFetch = false) {
   const container = document.getElementById('ko-expanders');
   if (!container) return;
 
   const matches = await fetchKOMatches();
-  const { data: picks } = await sb.from('ko_picks')
-    .select('*')
-    .eq('user_id', currentUser.id)
-    .eq('bet_group_id', betGroup.id);
 
-  koPicks = {};
-  (picks || []).forEach(p => { koPicks[p.match_id] = p.team_id; });
+  if (!skipPicksFetch) {
+    const { data: picks } = await sb.from('ko_picks')
+      .select('*')
+      .eq('user_id', currentUser.id)
+      .eq('bet_group_id', betGroup.id);
+    koPicks = {};
+    (picks || []).forEach(p => { koPicks[p.match_id] = p.team_id; });
+  }
 
   const stages = [
     { key: 'LAST_32',        label: 'ko_r16', pts: 2, icon: 'ti-tournament' },
@@ -1378,9 +1380,8 @@ async function pickKO(matchId, teamId) {
     koPicks[matchId] = teamId;
   }
 
-  // Re-render apenas o match card
-  koMatches = null; // invalidar para re-fetch
-  renderKO();
+  // Re-render os expanders com os picks actualizados (sem re-fetch à API nem à BD)
+  renderKOExpanders(true);
 }
 
 
@@ -1895,20 +1896,19 @@ async function viewPlayerPicks(userId, displayName) {
   const teamIds = [...new Set(playerPicks.map(p => p.team_id))];
   let qualified = 0, provisional = 0, stillIn = 0;
 
-  // Construir lookup de playedGames por team id
-  const playedByTeam = {};
-  if (standingsCache) {
-    const total = standingsCache.find(s => s.type === 'TOTAL');
-    (total?.table || []).forEach(row => {
-      playedByTeam[row.team.id] = row.playedGames;
-    });
-  }
+  // Construir set de equipas definitivamente apuradas
+  // Uma equipa está definitivamente apurada se já aparece num jogo dos 16avos na API
+  const definitelyQualified = new Set();
+  const koData = await fetchKOMatches().catch(() => []);
+  koData.filter(m => m.stage === 'LAST_32').forEach(m => {
+    if (m.homeTeam?.id) definitelyQualified.add(m.homeTeam.id);
+    if (m.awayTeam?.id) definitelyQualified.add(m.awayTeam.id);
+  });
 
   teamIds.forEach(tid => {
-    const inGroups  = wcResults['grupos']?.has(tid);
-    const played    = playedByTeam[tid] ?? 0;
-    const isDefinite = inGroups && played >= 3;
-    const isProv     = inGroups && played < 3;
+    const inGroups   = wcResults['grupos']?.has(tid);
+    const isDefinite = definitelyQualified.has(tid);
+    const isProv     = inGroups && !isDefinite;
     if (isDefinite) qualified++;
     else if (isProv) provisional++;
     else stillIn++;
@@ -2004,7 +2004,7 @@ async function viewPlayerPicks(userId, displayName) {
           <span style="font-size:10px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--gl)':'var(--muted)'};background:${i===0?'rgba(245,200,66,0.12)':i===1?'rgba(45,158,88,0.12)':'var(--card)'};padding:2px 8px;border-radius:6px">
             ${i===0?'1º':i===1?'2º':t('picks_third')}
           </span>
-          ${wcResults['grupos']?.has(tm.id) ? (playedByTeam[tm.id] >= 3 ? '<span style="font-size:14px">✅</span>' : '<span style="font-size:14px">🟡</span>') : ''}
+          ${wcResults['grupos']?.has(tm.id) ? (definitelyQualified.has(tm.id) ? '<span style="font-size:14px">✅</span>' : '<span style="font-size:14px">🟡</span>') : ''}
         </div>`).join('')}
     </div>`;
   }).join('') + koSection;

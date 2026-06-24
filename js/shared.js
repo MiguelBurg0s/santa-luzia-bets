@@ -18,6 +18,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // -- FASES ------------------------------------------
 const FASES = [
   { id:'grupos',  label:'Fase de Grupos',   pts:1, max:32 },
+  { id:'32avos',  label:'32avos de Final',  pts:1, max:16 },
   { id:'16avos',  label:'16avos de Final',  pts:2, max:8  },
   { id:'8avos',   label:'8avos de Final',   pts:2, max:4  },
   { id:'quartos', label:'Quartos de Final', pts:2, max:2  },
@@ -28,7 +29,7 @@ const FASES = [
 // Mapear stage da API -> fase id
 const STAGE_MAP = {
   'GROUP_STAGE'    : 'grupos',
-  'LAST_32'        : '16avos',
+  'LAST_32'        : '32avos',
   'LAST_16'        : '16avos',
   'QUARTER_FINALS' : 'quartos',
   'SEMI_FINALS'    : 'meias',
@@ -95,39 +96,39 @@ function getWCGroups() {
     ]},
     { id:'G', teams:[
       { id:805,  nameKey:'team_Belgium',         tla:'BEL', flag_code:'be'     },
-      { id:1954, nameKey:'team_Egypt',          tla:'EGY', flag_code:'eg'     },
-      { id:793,  nameKey:'team_Iran',            tla:'IRN', flag_code:'ir'     },
-      { id:1581, nameKey:'team_NewZealand',   tla:'NZL', flag_code:'nz'     },
+      { id:825,  nameKey:'team_Egypt',          tla:'EGY', flag_code:'eg'     },
+      { id:840,  nameKey:'team_Iran',            tla:'IRN', flag_code:'ir'     },
+      { id:783,  nameKey:'team_NewZealand',   tla:'NZL', flag_code:'nz'     },
     ]},
     { id:'H', teams:[
       { id:760,  nameKey:'team_Spain',         tla:'ESP', flag_code:'es'     },
-      { id:6308, nameKey:'team_CapeVerde',      tla:'CPV', flag_code:'cv'     },
-      { id:1906, nameKey:'team_SaudiArabia',  tla:'KSA', flag_code:'sa'     },
-      { id:2171, nameKey:'team_Uruguay',         tla:'URU', flag_code:'uy'     },
+      { id:1930, nameKey:'team_CapeVerde',      tla:'CPV', flag_code:'cv'     },
+      { id:801,  nameKey:'team_SaudiArabia',  tla:'KSA', flag_code:'sa'     },
+      { id:758,  nameKey:'team_Uruguay',         tla:'URU', flag_code:'uy'     },
     ]},
     { id:'I', teams:[
       { id:773,  nameKey:'team_France',          tla:'FRA', flag_code:'fr'     },
-      { id:907,  nameKey:'team_Senegal',         tla:'SEN', flag_code:'sn'     },
-      { id:781,  nameKey:'team_Norway',         tla:'NOR', flag_code:'no'     },
-      { id:8475, nameKey:'team_Iraq',          tla:'IRQ', flag_code:'iq'     },
+      { id:804,  nameKey:'team_Senegal',         tla:'SEN', flag_code:'sn'     },
+      { id:8872, nameKey:'team_Norway',         tla:'NOR', flag_code:'no'     },
+      { id:8062, nameKey:'team_Iraq',          tla:'IRQ', flag_code:'iq'     },
     ]},
     { id:'J', teams:[
-      { id:7,    nameKey:'team_Argentina',       tla:'ARG', flag_code:'ar'     },
+      { id:762,  nameKey:'team_Argentina',       tla:'ARG', flag_code:'ar'     },
       { id:816,  nameKey:'team_Austria',         tla:'AUT', flag_code:'at'     },
-      { id:1937, nameKey:'team_Algeria',         tla:'ALG', flag_code:'dz'     },
-      { id:8487, nameKey:'team_Jordan',        tla:'JOR', flag_code:'jo'     },
+      { id:778,  nameKey:'team_Algeria',         tla:'ALG', flag_code:'dz'     },
+      { id:8049, nameKey:'team_Jordan',        tla:'JOR', flag_code:'jo'     },
     ]},
     { id:'K', teams:[
       { id:765,  nameKey:'team_Portugal',        tla:'POR', flag_code:'pt'     },
-      { id:1963, nameKey:'team_DRCongo',        tla:'COD', flag_code:'cd'     },
-      { id:9728, nameKey:'team_Uzbekistan',     tla:'UZB', flag_code:'uz'     },
+      { id:1934, nameKey:'team_DRCongo',        tla:'COD', flag_code:'cd'     },
+      { id:8070, nameKey:'team_Uzbekistan',     tla:'UZB', flag_code:'uz'     },
       { id:818,  nameKey:'team_Colombia',        tla:'COL', flag_code:'co'     },
     ]},
     { id:'L', teams:[
       { id:770,  nameKey:'team_England',      tla:'ENG', flag_code:'gb-eng' },
       { id:799,  nameKey:'team_Croatia',         tla:'CRO', flag_code:'hr'     },
-      { id:1990, nameKey:'team_Ghana',            tla:'GHA', flag_code:'gh'     },
-      { id:800,  nameKey:'team_Panama',          tla:'PAN', flag_code:'pa'     },
+      { id:763,  nameKey:'team_Ghana',            tla:'GHA', flag_code:'gh'     },
+      { id:1836, nameKey:'team_Panama',          tla:'PAN', flag_code:'pa'     },
     ]},
   ];
 
@@ -154,7 +155,8 @@ async function fetchWCGroups() {
 window.testMode = function(active) {
   if (active) {
     sessionStorage.setItem('testResults', JSON.stringify({
-      grupos:  [769, 774, 772, 764, 770, 765, 786, 762, 773, 760, 805, 768],
+      grupos:  [769, 774, 732, 764, 770, 765, 786, 762, 773, 760, 805, 768],
+      '32avos':[769, 764, 770, 765, 786, 762, 773, 760, 805, 768, 759, 788],
       '16avos':[769, 764, 770, 765, 773, 760, 805, 768],
       '8avos': [769, 764, 770, 773, 760],
       quartos: [769, 770, 760],
@@ -216,44 +218,37 @@ async function fetchWCResults() {
   }
 
   // Fase de grupos: usar standings para saber quem passou
+  // A API devolve tudo numa lista plana GROUP_STAGE, sem separar por grupo.
+  // Usamos wcGroups (estatico) para separar as 48 equipas nos 12 grupos de 4.
   const standingsData = await fdFetch(`/competitions/WC/standings?season=${WC_SEASON}`);
   const allThirds = [];
 
-  // A API devolve standings flat (group: null) — usar getWCGroups() para separar por grupo
-  const groups = (typeof getWCGroups === 'function') ? getWCGroups() : [];
+  // Encontrar o standing GROUP_STAGE (lista plana com todas as equipas)
+  const groupStanding = (standingsData.standings || []).find(s => s.type === 'TOTAL');
+  if (groupStanding) {
+    const flatTable = groupStanding.table; // 48 equipas ordenadas por pts/DG/GM
+    // Indexar por team.id para lookup rapido
+    const statsById = {};
+    flatTable.forEach(row => { statsById[row.team.id] = row; });
 
-  // Criar lookup de stats por team id a partir do TOTAL standing
-  const statsByTeamId = {};
-  for (const standing of (standingsData.standings || [])) {
-    if (standing.type !== 'TOTAL') continue;
-    for (const row of (standing.table || [])) {
-      statsByTeamId[row.team.id] = row;
-      if (row.team.tla) statsByTeamId[row.team.tla] = row;
+    // Iterar por cada grupo (4 equipas conhecidas) e calcular classificacao
+    const wcGrps = getWCGroups();
+    for (const grp of wcGrps) {
+      // Obter stats da API para cada equipa do grupo
+      const rows = grp.teams
+        .map(tm => statsById[tm.id])
+        .filter(Boolean)
+        .filter(row => row.playedGames > 0)
+        .sort((a, b) => b.points - a.points || b.goalDifference - a.goalDifference || b.goalsFor - a.goalsFor);
+
+      if (!rows.length) continue;
+      // 1o passa sempre se ja jogou
+      if (rows[0]) results['grupos'].add(rows[0].team.id);
+      // 2o so conta se tiver pontos
+      if (rows[1] && rows[1].points > 0) results['grupos'].add(rows[1].team.id);
+      // 3o fica em lista de espera
+      if (rows[2] && rows[2].points > 0) allThirds.push({ team: rows[2].team, pts: rows[2].points, gd: rows[2].goalDifference, gf: rows[2].goalsFor });
     }
-  }
-
-  for (const g of groups) {
-    // Ordenar equipas do grupo pelos stats actuais
-    const rows = g.teams.map(team => {
-      const stats = statsByTeamId[team.id] || statsByTeamId[team.tla];
-      return {
-        id:      team.id,
-        pts:     stats?.points ?? 0,
-        gd:      stats?.goalDifference ?? 0,
-        gf:      stats?.goalsFor ?? 0,
-        played:  stats?.playedGames ?? 0,
-      };
-    }).filter(r => r.played > 0)
-      .sort((a,b) => b.pts - a.pts || b.gd - a.gd || b.gf - a.gf);
-
-    if (!rows.length) continue;
-
-    // 1º passa sempre
-    if (rows[0]) results['grupos'].add(rows[0].id);
-    // 2º só se tiver pontos
-    if (rows[1] && rows[1].pts > 0) results['grupos'].add(rows[1].id);
-    // 3º fica em lista de espera
-    if (rows[2] && rows[2].pts > 0) allThirds.push({ team: { id: rows[2].id }, pts: rows[2].pts, gd: rows[2].gd, gf: rows[2].gf });
   }
 
   // Melhores 8 terceiros classificados passam (top 8 por pts, depois GD, depois GF)
@@ -269,7 +264,7 @@ async function fetchWCResults() {
 
 // Proxima fase apos uma vitoria num jogo
 function nextFaseId(currentStage) {
-  const order = ['grupos','16avos','8avos','quartos','meias','campeao'];
+  const order = ['grupos','32avos','16avos','8avos','quartos','meias','campeao'];
   const idx = order.indexOf(currentStage);
   return idx >= 0 && idx < order.length - 1 ? order[idx + 1] : null;
 }
@@ -305,60 +300,6 @@ function tlaToFlagCode(tla, name) {
   return map[tla] || tla?.toLowerCase().slice(0,2) || 'un';
 }
 
-// -- FASES ELIMINATÓRIAS ------------------------------
-// IDs e kickoffs dos jogos dos 16avos (LAST_32 na API)
-const KO_R16_MATCHES = [
-  { id: 537417, utcDate: '2026-06-28T19:00:00Z' },
-  { id: 537423, utcDate: '2026-06-29T17:00:00Z' },
-  { id: 537415, utcDate: '2026-06-29T20:30:00Z' },
-  { id: 537418, utcDate: '2026-06-30T01:00:00Z' },
-  { id: 537424, utcDate: '2026-06-30T17:00:00Z' },
-  { id: 537416, utcDate: '2026-06-30T21:00:00Z' },
-  { id: 537425, utcDate: '2026-07-01T01:00:00Z' },
-  { id: 537426, utcDate: '2026-07-01T16:00:00Z' },
-  { id: 537422, utcDate: '2026-07-01T20:00:00Z' },
-  { id: 537421, utcDate: '2026-07-02T00:00:00Z' },
-  { id: 537420, utcDate: '2026-07-02T19:00:00Z' },
-  { id: 537419, utcDate: '2026-07-02T23:00:00Z' },
-  { id: 537429, utcDate: '2026-07-03T03:00:00Z' },
-  { id: 537428, utcDate: '2026-07-03T18:00:00Z' },
-  { id: 537427, utcDate: '2026-07-03T22:00:00Z' },
-  { id: 537430, utcDate: '2026-07-04T01:30:00Z' },
-];
-
-// Matchups fixos dos 32avos — placeholders enquanto equipas não são conhecidas
-const KO_R32_PLACEHOLDERS = {
-  537417: { home: '2º Grupo A', away: '2º Grupo B' },
-  537423: { home: '1º Grupo C', away: '2º Grupo F' },
-  537415: { home: '1º Grupo F', away: '2º Grupo C' },
-  537418: { home: '2º Grupo E', away: '2º Grupo I' },
-  537424: { home: '1º Grupo I', away: '3º C/D/F/G/H' },
-  537416: { home: '1º Grupo A', away: '3º C/E/F/H/I' },
-  537425: { home: '1º Grupo L', away: '3º E/H/I/J/K' },
-  537426: { home: '1º Grupo G', away: '3º A/E/H/I/J' },
-  537422: { home: '1º Grupo D', away: '3º B/E/F/I/J' },
-  537421: { home: '2º Grupo G', away: '2º Grupo H' },
-  537420: { home: '1º Grupo E', away: '3º A/B/C/D/F' },
-  537419: { home: '2º Grupo D', away: '2º Grupo J' },
-  537429: { home: '1º Grupo K', away: '3º D/E/I/J/L' },
-  537428: { home: '1º Grupo J', away: '2º Grupo H' },
-  537427: { home: '1º Grupo H', away: '2º Grupo K' },
-  537430: { home: '1º Grupo B', away: '2º Grupo L' },
-};
-
-// Mapeamento stage API → fase id (já existe STAGE_MAP mas adicionar KO stages)
-const KO_STAGE_LABELS = {
-  'LAST_32':        'ko_r16',
-  'LAST_16':        'ko_r8',
-  'QUARTER_FINALS': 'ko_qf',
-  'SEMI_FINALS':    'ko_sf',
-  'FINAL':          'ko_final',
-};
-
-function isKOMatchLocked(utcDate) {
-  return new Date() >= new Date(utcDate);
-}
-
 // -- FLAGS & AVATAR ---------------------------------
 function flagImg(code, size=24) {
   if (!code) return '';
@@ -377,6 +318,27 @@ function crestImg(crestUrl, size=24) {
     onerror="this.style.display='none'" alt="">`;
 }
 
+// -- KO ROUND OF 32 PLACEHOLDERS ---------------------
+// Matchups fixos dos 16avos (jogos da LAST_32 na API)
+const KO_R32_PLACEHOLDERS = {
+  537417: { home: '2º Grupo A',       away: '2º Grupo B'           },
+  537423: { home: '1º Grupo C',       away: '2º Grupo F'           },
+  537415: { home: '1º Grupo F',       away: '2º Grupo C'           },
+  537418: { home: '2º Grupo E',       away: '2º Grupo I'           },
+  537424: { home: '1º Grupo I',       away: '3º C/D/F/G/H'         },
+  537416: { home: '1º Grupo A',       away: '3º C/E/F/H/I'         },
+  537425: { home: '1º Grupo L',       away: '3º E/H/I/J/K'         },
+  537426: { home: '1º Grupo G',       away: '3º A/E/H/I/J'         },
+  537422: { home: '1º Grupo D',       away: '3º B/E/F/I/J'         },
+  537421: { home: '2º Grupo G',       away: '2º Grupo H'           },
+  537420: { home: '1º Grupo E',       away: '3º A/B/C/D/F'         },
+  537419: { home: '2º Grupo D',       away: '2º Grupo J'           },
+  537429: { home: '1º Grupo K',       away: '3º D/E/I/J/L'         },
+  537428: { home: '1º Grupo J',       away: '2º Grupo H'           },
+  537427: { home: '1º Grupo H',       away: '2º Grupo K'           },
+  537430: { home: '1º Grupo B',       away: '2º Grupo L'           },
+};
+
 const AVATAR_COLORS = ['#2d9e58','#c9a020','#e85555','#4a90d9','#9b59b6','#e67e22','#1abc9c','#e84393'];
 
 function getInitials(name) {
@@ -393,19 +355,22 @@ function avatarEl(name, color, size=34, fontSize=13) {
 const GROUP_KICKOFFS = {
   A: new Date('2026-06-11T19:00:00Z'),
   B: new Date('2026-06-12T19:00:00Z'),
-  C: new Date('2026-06-13T22:00:00Z'),
-  D: new Date('2026-06-13T01:00:00Z'),
-  E: new Date('2026-06-14T17:00:00Z'),
-  F: new Date('2026-06-14T20:00:00Z'),
-  G: new Date('2026-06-15T19:00:00Z'),
-  H: new Date('2026-06-15T16:00:00Z'),
-  I: new Date('2026-06-16T19:00:00Z'),
-  J: new Date('2026-06-17T01:00:00Z'),
-  K: new Date('2026-06-17T17:00:00Z'),
-  L: new Date('2026-06-17T20:00:00Z'),
+  C: new Date('2026-06-13T19:00:00Z'),
+  D: new Date('2026-06-12T21:00:00Z'),
+  E: new Date('2026-06-14T13:00:00Z'),
+  F: new Date('2026-06-14T16:00:00Z'),
+  G: new Date('2026-06-15T15:00:00Z'),
+  H: new Date('2026-06-15T12:00:00Z'),
+  I: new Date('2026-06-16T15:00:00Z'),
+  J: new Date('2026-06-16T21:00:00Z'),
+  K: new Date('2026-06-17T13:00:00Z'),
+  L: new Date('2026-06-17T16:00:00Z'),
 };
 
 function isGroupLocked(id)  { const k = GROUP_KICKOFFS[id]; return k ? new Date() >= k : false; }
+
+// Um jogo KO está locked se a hora de início (utcDate) já passou
+function isKOMatchLocked(utcDate) { return utcDate ? new Date() >= new Date(utcDate) : false; }
 
 function kickoffLabel(id) {
   const k = GROUP_KICKOFFS[id]; if (!k) return '';
