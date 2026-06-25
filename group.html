@@ -1885,6 +1885,7 @@ async function viewPlayerPicks(userId, displayName) {
   }
 
   // Calcular status de cada pick usando standingsCache
+  if (!standingsCache) await fetchStandings().catch(() => {});
   const teamIds = [...new Set(playerPicks.map(p => p.team_id))];
   let qualified = 0, provisional = 0, stillIn = 0;
 
@@ -1897,13 +1898,27 @@ async function viewPlayerPicks(userId, displayName) {
     if (m.awayTeam?.id) definitelyQualified.add(m.awayTeam.id);
   });
 
+  // Equipas cujo grupo ainda não terminou (jogaram < 3 jogos)
+  // standingsCache é array de standing objects; a tabela plana está em standingsCache[0].table (GROUP_STAGE)
+  const groupsNotFinished = new Set();
+  const flatStandings = standingsCache?.find?.(s => s.type === 'TOTAL')?.table || [];
+  const statsByTeam = {};
+  flatStandings.forEach(row => { statsByTeam[row.team.id] = row; });
+  getWCGroups().forEach(g => {
+    const played = g.teams.map(tm => statsByTeam[tm.id]?.playedGames ?? 0);
+    if (played.some(p => p < 3)) g.teams.forEach(tm => groupsNotFinished.add(tm.id));
+  });
+
+  let eliminated = 0;
   teamIds.forEach(tid => {
     const inGroups   = wcResults['grupos']?.has(tid);
     const isDefinite = definitelyQualified.has(tid);
     const isProv     = inGroups && !isDefinite;
+    const groupOpen  = groupsNotFinished.has(tid);
     if (isDefinite) qualified++;
     else if (isProv) provisional++;
-    else stillIn++;
+    else if (groupOpen) stillIn++;
+    else eliminated++;
   });
 
   const byGroup = {};
@@ -1924,6 +1939,9 @@ async function viewPlayerPicks(userId, displayName) {
       </span>` : ''}
       ${stillIn > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
         <span>⚽</span><strong>${stillIn}</strong> <span style="color:var(--muted)">${t('picks_still_in')}</span>
+      </span>` : ''}
+      ${eliminated > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
+        <span>❌</span><strong>${eliminated}</strong> <span style="color:var(--muted)">${t('picks_eliminated')}</span>
       </span>` : ''}
     </div>`;
 
@@ -1996,7 +2014,7 @@ async function viewPlayerPicks(userId, displayName) {
           <span style="font-size:10px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--gl)':'var(--muted)'};background:${i===0?'rgba(245,200,66,0.12)':i===1?'rgba(45,158,88,0.12)':'var(--card)'};padding:2px 8px;border-radius:6px">
             ${i===0?'1º':i===1?'2º':t('picks_third')}
           </span>
-          ${wcResults['grupos']?.has(tm.id) ? (definitelyQualified.has(tm.id) ? '<span style="font-size:14px">✅</span>' : '<span style="font-size:14px">🟡</span>') : ''}
+          ${definitelyQualified.has(tm.id) ? '<span style="font-size:14px">✅</span>' : wcResults['grupos']?.has(tm.id) ? '<span style="font-size:14px">🟡</span>' : groupsNotFinished.has(tm.id) ? '<span style="font-size:14px">⚽</span>' : '<span style="font-size:14px">❌</span>'}
         </div>`).join('')}
     </div>`;
   }).join('') + koSection;
