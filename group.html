@@ -59,7 +59,7 @@
           <div style="display:flex;align-items:center;gap:8px">
             <i class="ti ti-list-check" style="font-size:16px;color:var(--gold)"></i>
             <span style="font-size:14px;font-weight:600;color:var(--text)" data-i18n="tab_group_stage"></span>
-            <span style="font-size:10px;color:var(--red);font-weight:600">● fechado</span>
+            <span style="font-size:10px;color:var(--red);font-weight:600">● <span data-i18n="status_closed"></span></span>
           </div>
           <i class="ti ti-chevron-down" id="chevron-grupos" style="font-size:16px;color:var(--muted);transition:transform .2s"></i>
         </button>
@@ -1202,7 +1202,7 @@ async function renderKOExpanders(skipPicksFetch = false) {
           <i class="ti ${stage.icon}" style="font-size:16px;color:var(--gold)"></i>
           <span style="font-size:14px;font-weight:600;color:var(--text)">${t(stage.label)}</span>
           ${picksInStage > 0 ? `<span style="font-size:11px;color:var(--gl);background:rgba(45,158,88,0.1);padding:1px 7px;border-radius:6px">${picksInStage}/${totalInStage}</span>` : ''}
-          ${isOpen ? `<span style="font-size:10px;color:var(--gl);font-weight:600">● aberto</span>` : `<span style="font-size:10px;color:var(--red);font-weight:600">● fechado</span>`}
+          ${isOpen ? `<span style="font-size:10px;color:var(--gl);font-weight:600">● ${t('status_open')}</span>` : `<span style="font-size:10px;color:var(--red);font-weight:600">● ${t('status_closed')}</span>`}
         </div>
         <i class="ti ti-chevron-down" id="chevron-${stage.key}"
            style="font-size:16px;color:var(--muted);transition:transform .2s;transform:rotate(${isExpanded?'0':'-90'}deg)"></i>
