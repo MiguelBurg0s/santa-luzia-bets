@@ -156,7 +156,7 @@ async function renderGroups() {
 
   list.innerHTML = myGroups.map(bg => `
     <a href="group.html?id=${bg.id}" class="bet-group-card">
-      <div class="bet-group-icon">🏆</div>
+      <div class="bet-group-icon"><img src="https://pbs.twimg.com/media/FwYWk8RagAE8mIn.jpg" style="width:40px;height:40px;object-fit:cover;border-radius:8px"></div>
       <div style="flex:1;min-width:0">
         <div style="font-size:15px;font-weight:600">${bg.name}${bg.is_admin ? '<span class="admin-chip">admin</span>' : ''}</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">${bg.description || t('lobby_group_sub')}</div>
