@@ -626,19 +626,38 @@ function syncAllPicks() {
 }
 
 // -- RANKING -----------------------------------------
-function calcScore(pickedTeamIds) {
-  return pickedTeamIds.reduce((pts, tid) =>
-    pts + FASES.reduce((s,f) => s + (wcResults[f.id]?.has(tid) ? f.pts : 0), 0), 0);
+// Cada fase é independente:
+//   picks (fase de grupos) -> só pontuam wcResults['grupos'] (1pt)
+//   ko_picks por match_id  -> pontuam só a fase desse jogo (via STAGE_MAP + koMatches)
+function calcScore(groupTeamIds, userKoPicks) {
+  // 1. Pontos fase de grupos
+  const groupPts = groupTeamIds.reduce((pts, tid) =>
+    pts + (wcResults['grupos']?.has(tid) ? 1 : 0), 0);
+
+  // 2. Pontos KO — cada pick pontuado apenas na fase do seu jogo
+  let koPts = 0;
+  for (const kp of userKoPicks) {
+    const match = (koMatches || []).find(m => m.id === kp.match_id);
+    if (!match) continue;
+    const faseId = STAGE_MAP[match.stage];
+    const fase   = FASES.find(f => f.id === faseId);
+    if (!faseId || !fase) continue;
+    if (wcResults[faseId]?.has(kp.team_id)) koPts += fase.pts;
+  }
+
+  return groupPts + koPts;
 }
 
-function renderRanking() {
+async function renderRanking() {
+  if (!koMatches) await fetchKOMatches().catch(() => {});
   const players = groupMembers.map(m => {
-    const prof       = m.profiles;
-    const teamIds    = [...new Set(allPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
-    const koTeamIds  = [...new Set(allKoPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
-    const allTeamIds = [...new Set([...teamIds, ...koTeamIds])];
-    const totalPicks = allPicks.filter(p => p.user_id===prof.id).length + allKoPicks.filter(p => p.user_id===prof.id).length;
-    return { ...prof, score:calcScore(allTeamIds), teamIds:allTeamIds, totalPicks, isMe:prof.id===currentUser.id, is_admin:m.is_admin };
+    const prof        = m.profiles;
+    const teamIds     = [...new Set(allPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
+    const koTeamIds   = [...new Set(allKoPicks.filter(p => p.user_id===prof.id).map(p => p.team_id))];
+    const allTeamIds  = [...new Set([...teamIds, ...koTeamIds])];
+    const userKoPicks = allKoPicks.filter(p => p.user_id===prof.id);
+    const totalPicks  = allPicks.filter(p => p.user_id===prof.id).length + userKoPicks.length;
+    return { ...prof, score:calcScore(teamIds, userKoPicks), teamIds:allTeamIds, totalPicks, isMe:prof.id===currentUser.id, is_admin:m.is_admin };
   }).sort((a,b) => b.score-a.score || (a.isMe?-1:1));
 
   renderPrizeBanner();
