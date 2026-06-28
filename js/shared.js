@@ -18,7 +18,7 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
 // -- FASES ------------------------------------------
 const FASES = [
   { id:'grupos',  label:'Fase de Grupos',   pts:1, max:32 },
-  { id:'32avos',  label:'32avos de Final',  pts:1, max:16 },
+  { id:'32avos',  label:'32avos de Final',  pts:2, max:16 },
   { id:'16avos',  label:'16avos de Final',  pts:2, max:8  },
   { id:'8avos',   label:'8avos de Final',   pts:2, max:4  },
   { id:'quartos', label:'Quartos de Final', pts:2, max:2  },
@@ -214,7 +214,7 @@ async function fetchWCResults() {
       const awayPen = match.score?.penalties?.away ?? 0;
       winnerId = homePen >= awayPen ? homeId : awayId;
     }
-    if (winnerId) results[nextFase].add(winnerId);
+    if (winnerId) results[stage].add(winnerId);
   }
 
   // Fase de grupos: usar standings para saber quem passou

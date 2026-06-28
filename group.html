@@ -1579,26 +1579,27 @@ function renderKOMatch(m) {
     const isPicked  = picked === id;
     const isWinner  = winner === id;
     const isLoser   = isFinished && winner && winner !== id && id;
-    const canClick  = id && !locked;
+    const canClick  = id && !locked && !isFinished;
     const isTBD     = !id;
     return `<button onclick="${canClick ? `pickKO(${m.id}, ${id})` : ''}"
-      ${isTBD || locked ? 'disabled' : ''}
+      ${isTBD || locked || isFinished ? 'disabled' : ''}
       style="display:flex;align-items:center;gap:8px;padding:10px 12px;width:100%;
              background:${isPicked ? 'rgba(45,158,88,0.15)' : isWinner ? 'rgba(45,158,88,0.08)' : 'var(--card2)'};
              border:.5px solid ${isPicked ? 'var(--gl)' : isWinner ? 'rgba(45,158,88,0.35)' : 'var(--border2)'};
              border-radius:10px;cursor:${canClick ? 'pointer' : 'default'};
-             opacity:${isLoser ? '0.45' : '1'};transition:all .15s;
+             opacity:${isLoser ? '0.35' : '1'};transition:all .15s;
              font-family:'DM Sans',sans-serif;text-align:left">
       ${flag}
-      <span style="flex:1;font-size:13px;font-weight:${isPicked||isWinner?'600':'400'};
-                   color:${isTBD?'var(--muted)':'var(--text)'};
+      <span style="flex:1;font-size:13px;font-weight:${isWinner?'700':isPicked?'600':'400'};
+                   color:${isWinner?'var(--gl)':isTBD?'var(--muted)':'var(--text)'};
                    white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</span>
-      ${(isFinished||isLive) && score !== '' ? `<span style="font-size:15px;font-weight:700;color:${isLive?'var(--red)':'var(--text)'};min-width:16px;text-align:right">${score}</span>` : ''}
-      ${isPicked ? '<span style="font-size:12px;color:var(--gl);flex-shrink:0">✓</span>' : ''}
+
+      ${isPicked ? `<span style="font-size:13px;color:${isWinner?'var(--gl)':'var(--muted)'};flex-shrink:0;margin-left:6px">✓</span>` : '<span style="width:19px;flex-shrink:0"></span>'}
     </button>`;
   };
 
-  return `<div style="background:var(--card);border:.5px solid ${isLive?'var(--red)':picked?'rgba(45,158,88,0.2)':'var(--border)'};
+  return `<div style="background:${isFinished?'rgba(0,0,0,0.12)':'var(--card)'};
+                      border:.5px solid ${isLive?'var(--red)':isFinished?'var(--border2)':picked?'rgba(45,158,88,0.2)':'var(--border)'};
                       border-radius:12px;padding:12px 14px;transition:border-color .2s">
     <div style="font-size:10px;color:var(--muted);margin-bottom:10px;display:flex;justify-content:space-between;align-items:center">
       <span style="display:flex;align-items:center;gap:5px">
