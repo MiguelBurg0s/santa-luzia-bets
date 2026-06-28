@@ -94,18 +94,48 @@
 
     <!-- JOGOS -->
     <div id="screen-matches" class="screen" style="display:none">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.5rem">
-        <div class="section-title" style="margin:0" data-i18n="matches_upcoming"></div>
+      <!-- Toggle Jogos / Grupos / Eliminatórias -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:1rem">
+        <div style="display:flex;background:var(--card2);border:.5px solid var(--border);border-radius:10px;padding:3px;flex:1">
+          <button id="stats-btn-matches" onclick="switchStatsView('matches')"
+            style="flex:1;padding:7px 8px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;
+                   background:var(--gold);color:#1a2e1a">
+            <span data-i18n="stats_matches"></span>
+          </button>
+          <button id="stats-btn-groups" onclick="switchStatsView('groups')"
+            style="flex:1;padding:7px 8px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;
+                   background:transparent;color:var(--muted)">
+            <span data-i18n="stats_groups"></span>
+          </button>
+          <button id="stats-btn-bracket" onclick="switchStatsView('bracket')"
+            style="flex:1;padding:7px 8px;border-radius:8px;border:none;cursor:pointer;font-size:12px;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;
+                   background:transparent;color:var(--muted)">
+            <span data-i18n="stats_bracket"></span>
+          </button>
+        </div>
         <button onclick="refreshMatches()" id="matches-refresh-btn"
-          style="background:none;border:.5px solid var(--border2);border-radius:8px;padding:5px 10px;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif">
-          <i class="ti ti-refresh"></i> <span data-i18n="matches_refresh"></span>
+          style="background:none;border:.5px solid var(--border2);border-radius:8px;padding:7px 10px;color:var(--muted);font-size:12px;cursor:pointer;display:flex;align-items:center;gap:5px;font-family:'DM Sans',sans-serif;flex-shrink:0">
+          <i class="ti ti-refresh"></i>
         </button>
       </div>
-      <div id="matches-upcoming-list"><div class="spinner"></div></div>
-      <div class="section-title" style="margin-top:1.5rem" data-i18n="matches_recent"></div>
-      <div id="matches-recent-list"><div class="spinner"></div></div>
-      <div class="section-title" style="margin-top:1.5rem" data-i18n="standings_title"></div>
-      <div id="standings-list"><div class="spinner"></div></div>
+
+      <!-- Vista: Jogos -->
+      <div id="stats-view-matches">
+        <div id="matches-upcoming-list"><div class="spinner"></div></div>
+        <div class="section-title" style="margin-top:1.5rem" data-i18n="matches_recent"></div>
+        <div id="matches-recent-list"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Vista: Grupos -->
+      <div id="stats-view-groups" style="display:none">
+        <div style="font-size:11px;color:var(--muted);text-align:center;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:5px"><i class="ti ti-hand-click"></i> <span data-i18n="standings_click_hint"></span></div>
+        <div id="standings-list"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Vista: Bracket -->
+      <div id="stats-view-bracket" style="display:none">
+        <div id="bracket-container"><div class="spinner"></div></div>
+      </div>
     </div>
 
     <!-- REGRAS -->
@@ -244,6 +274,17 @@
 </div>
 
 <div class="toast" id="toast"></div>
+
+<!-- MODAL: Jogos da equipa -->
+<div id="modal-team-matches" class="modal-overlay" style="display:none">
+  <div class="modal-card">
+    <div class="modal-header">
+      <span id="team-matches-title" style="display:flex;align-items:center;gap:8px"></span>
+      <button onclick="closeModal('modal-team-matches')"><i class="ti ti-x"></i></button>
+    </div>
+    <div id="team-matches-content"></div>
+  </div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="js/i18n.js"></script>
@@ -880,12 +921,11 @@ async function fetchMatches() {
 async function renderMatches() {
   const upEl  = document.getElementById('matches-upcoming-list');
   const recEl = document.getElementById('matches-recent-list');
-  if (!upEl || !recEl) return;
+  if (!upEl) return;
 
-  // Só mostrar spinner se nao houver cache ainda
   if (!matchesCache) {
-    upEl.innerHTML  = '<div class="spinner"></div>';
-    recEl.innerHTML = '<div class="spinner"></div>';
+    upEl.innerHTML = '<div class="spinner"></div>';
+    if (recEl) recEl.innerHTML = '<div class="spinner"></div>';
   }
 
   try {
@@ -897,28 +937,236 @@ async function renderMatches() {
       .sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate))
       .slice(0, 8);
 
+
+    const live = matches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
+
     const recent = matches
       .filter(m => m.status === 'FINISHED')
       .sort((a,b) => new Date(b.utcDate) - new Date(a.utcDate))
       .slice(0, 8);
 
-    const live = matches.filter(m => m.status === 'IN_PLAY' || m.status === 'PAUSED');
-
     upEl.innerHTML = renderMatchList([...live, ...upcoming], false)
       || `<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:13px">${t('matches_no_upcoming')}</div>`;
 
-    recEl.innerHTML = renderMatchList(recent, true)
+    if (recEl) recEl.innerHTML = renderMatchList(recent, true)
       || `<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:13px">${t('matches_no_recent')}</div>`;
 
-    // Render standings
+
+    // Render standings e bracket
     renderStandings();
+    renderBracket();
 
   } catch(e) {
     console.error('renderMatches error:', e);
     upEl.innerHTML  = `<div style="text-align:center;padding:1rem;color:var(--red);font-size:13px">Erro: ${e.message}</div>`;
-    recEl.innerHTML = '';
   }
 }
+
+
+
+function switchStatsView(view) {
+  ['matches','groups','bracket'].forEach(v => {
+    const active = v === view;
+    document.getElementById('stats-view-' + v).style.display = active ? 'block' : 'none';
+    document.getElementById('stats-btn-' + v).style.background = active ? 'var(--gold)' : 'transparent';
+    document.getElementById('stats-btn-' + v).style.color = active ? '#1a2e1a' : 'var(--muted)';
+  });
+  if (view === 'bracket') renderBracket();
+}
+
+
+async function showTeamMatches(teamId, nameKey, flagCode) {
+  const titleEl  = document.getElementById('team-matches-title');
+  const contentEl = document.getElementById('team-matches-content');
+
+  titleEl.innerHTML = `${flagImg(flagCode, 22)} <strong>${t(nameKey)}</strong>`;
+  contentEl.innerHTML = '<div class="spinner"></div>';
+  openModal('modal-team-matches');
+
+  try {
+    const data = await fdFetch(`/teams/${teamId}/matches?competitions=2000&season=2026`);
+    const matches = (data.matches || []).sort((a,b) => new Date(a.utcDate) - new Date(b.utcDate));
+
+    if (!matches.length) {
+      contentEl.innerHTML = `<div style="text-align:center;padding:2rem;color:var(--muted);font-size:13px">${t('matches_no_recent')}</div>`;
+      return;
+    }
+
+    const { byId, byTla } = getTeamLookup();
+
+    function teamInfo(obj) {
+      if (!obj) return { name: '?', flag: null };
+      const team = byId[obj.id] || byTla[obj.tla];
+      return {
+        name: team ? t(team.nameKey) : (obj.shortName || obj.name || obj.tla || '?'),
+        flag: team?.flag_code || null,
+      };
+    }
+
+    contentEl.innerHTML = matches.map(m => {
+      const isHome     = m.homeTeam?.id === teamId;
+      const opponent   = isHome ? teamInfo(m.awayTeam) : teamInfo(m.homeTeam);
+      const fin        = m.status === 'FINISHED';
+      const live       = m.status === 'IN_PLAY' || m.status === 'PAUSED';
+      const hg         = m.score?.fullTime?.home;
+      const ag         = m.score?.fullTime?.away;
+      const teamGoals  = isHome ? hg : ag;
+      const oppGoals   = isHome ? ag : hg;
+      const win        = fin && teamGoals > oppGoals;
+      const lose       = fin && teamGoals < oppGoals;
+      const draw       = fin && teamGoals === oppGoals;
+      const date       = new Date(m.utcDate);
+      const dateStr    = date.toLocaleDateString(getLang()==='pt'?'pt-PT':getLang()==='es'?'es-ES':'en-GB', { day:'numeric', month:'short' });
+      const resultColor = win ? 'var(--gl)' : lose ? 'var(--red)' : 'var(--muted)';
+      const resultLabel = win ? 'V' : lose ? 'D' : draw ? 'E' : '';
+
+      return `<div style="display:flex;align-items:center;gap:10px;padding:9px 2px;border-bottom:.5px solid var(--border2)">
+        <div style="font-size:10px;color:var(--muted);width:40px;flex-shrink:0">${dateStr}</div>
+        <div style="font-size:10px;color:var(--muted);width:18px;flex-shrink:0;text-align:center">${isHome ? 'H' : 'A'}</div>
+        <div style="display:flex;align-items:center;gap:5px;flex:1;min-width:0">
+          ${opponent.flag ? `<img src="https://flagcdn.com/20x15/${opponent.flag}.png" style="width:16px;height:11px;object-fit:cover;border-radius:2px;flex-shrink:0">` : ''}
+          <span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${opponent.name}</span>
+        </div>
+        ${fin ? `
+          <div style="font-size:13px;font-weight:700;color:var(--text);min-width:36px;text-align:center">${teamGoals} – ${oppGoals}</div>
+          <div style="font-size:11px;font-weight:700;color:${resultColor};width:16px;text-align:center">${resultLabel}</div>
+        ` : live ? `
+          <div style="font-size:11px;font-weight:700;color:var(--red)">● LIVE</div>
+        ` : `
+          <div style="font-size:11px;color:var(--muted)">${date.toLocaleTimeString(getLang()==='pt'?'pt-PT':'en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Lisbon'})}</div>
+        `}
+      </div>`;
+    }).join('');
+
+  } catch(e) {
+    contentEl.innerHTML = `<div style="text-align:center;padding:1rem;color:var(--red);font-size:13px">Erro: ${e.message}</div>`;
+  }
+}
+
+
+async function renderBracket() {
+  const el = document.getElementById('bracket-container');
+  if (!el) return;
+  const allMatches = await fetchKOMatches().catch(() => []);
+  if (!allMatches.length) { el.innerHTML = ''; return; }
+  const { byId, byTla } = getTeamLookup();
+  function resolveTeam(obj) {
+    if (!obj) return null;
+    return byId[obj.id] || byTla[obj.tla] || null;
+  }
+  const H = 54, GAP = 8, CW = 130, CONW = 28, LABEL_H = 24;
+  const UNIT = H + GAP;
+  const TOTAL = 16 * UNIT - GAP;
+
+  function slotH(phase) { return UNIT * Math.pow(2, phase); }
+  function cardMid(phase, idx) { return Math.round(slotH(phase) * idx + slotH(phase) / 2); }
+  function cardTop(phase, idx) { return cardMid(phase, idx) - H / 2; }
+
+  function teamRow(obj, ph, win, lose, goals, fin) {
+    const team = resolveTeam(obj);
+    const name = team ? t(team.nameKey) : (obj?.shortName||obj?.name||obj?.tla||ph||'—');
+    const fc = team?.flag_code;
+    const rowH = H / 2;
+    return `<div style="display:flex;align-items:center;gap:4px;padding:0 6px;height:${rowH}px;
+                        background:${win?'rgba(45,158,88,0.18)':lose?'rgba(0,0,0,0.1)':'transparent'}">
+      ${fc?`<img src="https://flagcdn.com/20x15/${fc}.png" style="width:14px;height:10px;object-fit:cover;border-radius:2px;flex-shrink:0">`:'<span style="width:14px;flex-shrink:0"></span>'}
+      <span style="font-size:10px;font-weight:${win?700:400};flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+                   color:${win?'var(--gl)':lose?'var(--muted)':'var(--text)'};opacity:${!obj&&!ph?0.2:lose?0.4:1}">${name}</span>
+      ${fin&&goals!=null?`<span style="font-size:10px;font-weight:${win?700:400};color:${win?'var(--gl)':lose?'var(--muted)':'var(--text)'}">${goals}</span>`:''}
+    </div>`;
+  }
+  function card(m) {
+    if (!m) m = {};
+    const ph  = (!m.homeTeam?.id&&!m.awayTeam?.id&&KO_R32_PLACEHOLDERS[m.id])||{};
+    const fin = m.status==='FINISHED';
+    const live= m.status==='IN_PLAY'||m.status==='PAUSED';
+    const hw  = m.score?.winner==='HOME_TEAM', aw=m.score?.winner==='AWAY_TEAM';
+    return `<div style="background:var(--card2);outline:.5px solid ${live?'var(--red)':'var(--border)'};border-radius:7px;overflow:hidden;width:${CW}px;height:${H}px;box-sizing:border-box">
+      ${teamRow(m.homeTeam,ph.home,hw,aw&&fin,m.score?.fullTime?.home,fin)}
+      <div style="height:.5px;background:var(--border2)"></div>
+      ${teamRow(m.awayTeam,ph.away,aw,hw&&fin,m.score?.fullTime?.away,fin)}
+    </div>`;
+  }
+  function col(matches, phase, label) {
+    const items = matches.map((m,i)=>
+      `<div style="position:absolute;top:${cardTop(phase,i)}px;left:0">${card(m)}</div>`
+    ).join('');
+    return `<div style="display:flex;flex-direction:column;flex-shrink:0;align-items:center">
+      <div style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.5px;white-space:nowrap;height:${LABEL_H}px;display:flex;align-items:center">${label}</div>
+      <div style="position:relative;width:${CW}px;height:${TOTAL}px">${items}</div>
+    </div>`;
+  }
+  function conn(nPairs, phL, phR) {
+    let paths='';
+    const x=CONW/2;
+    for(let i=0;i<nPairs;i++){
+      const divA=cardTop(phL,i*2)+H/2, divB=cardTop(phL,i*2+1)+H/2; const yA=divA, yB=divB, yO=(divA+divB)/2;
+      paths+=`<line x1="0" y1="${yA}" x2="${x}" y2="${yA}" stroke="var(--border2)" stroke-width="1.2"/>`;
+      paths+=`<line x1="0" y1="${yB}" x2="${x}" y2="${yB}" stroke="var(--border2)" stroke-width="1.2"/>`;
+      paths+=`<line x1="${x}" y1="${yA}" x2="${x}" y2="${yB}" stroke="var(--border2)" stroke-width="1.2"/>`;
+      paths+=`<line x1="${x}" y1="${yO}" x2="${CONW}" y2="${yO}" stroke="var(--border2)" stroke-width="1.2"/>`;
+    }
+    return `<div style="display:flex;flex-direction:column;flex-shrink:0;align-items:center">
+      <div style="height:${LABEL_H}px"></div>
+      <svg width="${CONW}" height="${TOTAL}" style="overflow:visible">${paths}</svg>
+    </div>`;
+  }
+  // Bracket completo confirmado (IDs reais API + encadeamento oficial FIFA):
+  // QF M97 = W(M89) vs W(M90): slots 0-3
+  // QF M98 = W(M93) vs W(M94): slots 4-7
+  // QF M99 = W(M91) vs W(M92): slots 8-11
+  // QF M100= W(M95) vs W(M96): slots 12-15
+  // SF M101= W(M97) vs W(M98), SF M102= W(M99) vs W(M100)
+  const R32_IDS=[537415,537416,537417,537418,537419,537420,537421,537422,537423,537424,537425,537426,537427,537428,537429,537430];
+  const byMid={};
+  allMatches.forEach(m=>{byMid[m.id]=m;});
+  const r32=R32_IDS.map(id=>byMid[id]||{});
+  const r16=allMatches.filter(m=>m.stage==='LAST_16').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const qf =allMatches.filter(m=>m.stage==='QUARTER_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const sf =allMatches.filter(m=>m.stage==='SEMI_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const fin=allMatches.filter(m=>m.stage==='FINAL');
+  const ph16  = r16.length  ? r16  : Array(8).fill({});
+  const phQF  = qf.length   ? qf   : Array(4).fill({});
+  const phSF  = sf.length   ? sf   : Array(2).fill({});
+  const phFin = fin.length  ? fin  : [{}];
+
+  // Jogo do 3º lugar — não está na API, inferir os perdedores das meias
+  const sfLosers = sf.filter(m => m.status === 'FINISHED').map(m => {
+    const homeWin = m.score?.winner === 'HOME_TEAM';
+    return homeWin ? m.awayTeam : m.homeTeam;
+  });
+  const thirdMatch = {
+    homeTeam: sfLosers[0] || null,
+    awayTeam: sfLosers[1] || null,
+    status: sfLosers.length === 2 ? 'TIMED' : 'SCHEDULED',
+    score: {},
+    utcDate: '2026-07-18T19:00:00Z',  // 18 Jul, Miami
+  };
+  const thirdCard = `<div style="margin-top:16px;opacity:${sfLosers.length > 0 ? 1 : 0.5}">
+    <div style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.5px;text-align:center;margin-bottom:6px;white-space:nowrap">${t('ko_third')}</div>
+    ${card(thirdMatch)}
+  </div>`;
+
+  el.innerHTML=`<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:12px">
+    <div style="display:flex;align-items:flex-start;gap:0;width:max-content">
+      ${col(r32,0,t('ko_r16'))}${conn(8,0,1)}
+      ${col(ph16,1,t('ko_r8'))}${conn(4,1,2)}
+      ${col(phQF,2,t('ko_qf'))}${conn(2,2,3)}
+      ${col(phSF,3,t('ko_sf'))}${conn(1,3,4)}
+      <div style="display:flex;flex-direction:column;flex-shrink:0;align-items:center">
+        <div style="font-size:9px;font-weight:700;color:var(--gold);letter-spacing:.5px;white-space:nowrap;height:${LABEL_H}px;display:flex;align-items:center">${t('ko_final')}</div>
+        <div style="position:relative;width:${CW}px;height:${TOTAL}px">
+          <div style="position:absolute;top:${cardTop(4,0)}px;left:0">${card(phFin[0])}</div>
+          <div style="position:absolute;top:${cardTop(4,0) + H + 20}px;left:0;opacity:${sfLosers.length > 0 ? 1 : 0.5}">
+            <div style="font-size:9px;font-weight:700;color:var(--muted);letter-spacing:.5px;text-align:center;margin-bottom:5px;white-space:nowrap">${t('ko_third')}</div>
+            ${card(thirdMatch)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
 
 function renderMatchList(matches, isFinished) {
   if (!matches.length) return '';
@@ -1120,7 +1368,8 @@ async function renderStandings() {
 
               const rowBg = isTop2 ? 'rgba(245,200,66,0.07)' : isTop8Third ? 'rgba(74,144,217,0.1)' : 'transparent';
               const gd      = row.gd > 0 ? '+' + row.gd : row.gd;
-              return `<tr style="background:${rowBg};border-bottom:.5px solid rgba(255,255,255,0.04)">
+              return `<tr style="background:${rowBg};border-bottom:.5px solid rgba(255,255,255,0.04);cursor:pointer"
+                          onclick="showTeamMatches(${row.team.id}, '${row.team.nameKey}', '${row.team.flag_code}')">
                 <td style="padding:7px 8px;color:${isTop2?'var(--gold)':isTop8Third?'#7ab8f5':'var(--muted)'};font-weight:700;width:24px">${i+1}</td>
                 <td style="padding:7px 4px">
                   <div style="display:flex;align-items:center;gap:6px">
@@ -1906,10 +2155,8 @@ async function viewPlayerPicks(userId, displayName) {
   // Calcular status de cada pick usando standingsCache
   if (!standingsCache) await fetchStandings().catch(() => {});
   const teamIds = [...new Set(playerPicks.map(p => p.team_id))];
-  let qualified = 0, provisional = 0, stillIn = 0;
 
-  // Construir set de equipas definitivamente apuradas
-  // Uma equipa está definitivamente apurada se já aparece num jogo dos 16avos na API
+  // Construir set de equipas definitivamente apuradas (nos 16avos na API)
   const definitelyQualified = new Set();
   const koData = await fetchKOMatches().catch(() => []);
   koData.filter(m => m.stage === 'LAST_32').forEach(m => {
@@ -1917,8 +2164,7 @@ async function viewPlayerPicks(userId, displayName) {
     if (m.awayTeam?.id) definitelyQualified.add(m.awayTeam.id);
   });
 
-  // Equipas cujo grupo ainda não terminou (jogaram < 3 jogos)
-  // standingsCache é array de standing objects; a tabela plana está em standingsCache[0].table (GROUP_STAGE)
+  // Equipas cujo grupo ainda não terminou
   const groupsNotFinished = new Set();
   const flatStandings = standingsCache?.find?.(s => s.type === 'TOTAL')?.table || [];
   const statsByTeam = {};
@@ -1928,16 +2174,14 @@ async function viewPlayerPicks(userId, displayName) {
     if (played.some(p => p < 3)) g.teams.forEach(tm => groupsNotFinished.add(tm.id));
   });
 
-  let eliminated = 0;
+  // Status por equipa na fase de grupos
+  let gsCorrect = 0, gsWrong = 0, gsPending = 0;
   teamIds.forEach(tid => {
-    const inGroups   = wcResults['grupos']?.has(tid);
-    const isDefinite = definitelyQualified.has(tid);
-    const isProv     = inGroups && !isDefinite;
-    const groupOpen  = groupsNotFinished.has(tid);
-    if (isDefinite) qualified++;
-    else if (isProv) provisional++;
-    else if (groupOpen) stillIn++;
-    else eliminated++;
+    const inGroups  = wcResults['grupos']?.has(tid);
+    const groupOpen = groupsNotFinished.has(tid);
+    if (inGroups) gsCorrect++;
+    else if (groupOpen) gsPending++;
+    else gsWrong++;
   });
 
   const byGroup = {};
@@ -1945,24 +2189,6 @@ async function viewPlayerPicks(userId, displayName) {
     if (!byGroup[p.wc_group_id]) byGroup[p.wc_group_id] = [];
     byGroup[p.wc_group_id].push(p);
   });
-
-  // Status summary
-  const statusHtml = `
-    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 12px;
-                background:var(--card2);border-radius:10px;border:.5px solid var(--border)">
-      ${qualified > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
-        <span>✅</span><strong>${qualified}</strong> <span style="color:var(--muted)">${t('picks_qualified')}</span>
-      </span>` : ''}
-      ${provisional > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
-        <span>🟡</span><strong>${provisional}</strong> <span style="color:var(--muted)">${t('picks_provisional')}</span>
-      </span>` : ''}
-      ${stillIn > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
-        <span>⚽</span><strong>${stillIn}</strong> <span style="color:var(--muted)">${t('picks_still_in')}</span>
-      </span>` : ''}
-      ${eliminated > 0 ? `<span style="font-size:12px;display:flex;align-items:center;gap:4px">
-        <span>❌</span><strong>${eliminated}</strong> <span style="color:var(--muted)">${t('picks_eliminated')}</span>
-      </span>` : ''}
-    </div>`;
 
   // Buscar ko_picks do jogador
   const { data: koPicksData } = await sb.from('ko_picks')
@@ -1972,10 +2198,21 @@ async function viewPlayerPicks(userId, displayName) {
 
   const userKoPicks = koPicksData || [];
 
-  // Agrupar ko_picks por stage usando koMatches (se disponível)
+  // Helpers para mini-resumo
+  function miniSummary(correct, wrong, pending) {
+    const parts = [];
+    if (correct > 0) parts.push(`<span style="color:var(--gl);font-weight:600">${correct} ✅</span>`);
+    if (wrong   > 0) parts.push(`<span style="color:var(--red);font-weight:600">${wrong} ❌</span>`);
+    if (pending > 0) parts.push(`<span style="color:var(--muted);font-weight:600">${pending} ⏳</span>`);
+    return parts.join('<span style="color:var(--border);margin:0 4px">·</span>');
+  }
+
+  // Agrupar ko_picks por stage usando koMatches
   let koSection = '';
+  let koTotalCorrect = 0, koTotalWrong = 0, koTotalPending = 0;
+
   if (userKoPicks.length > 0 && koMatches) {
-    const stageOrder = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
+    const stageOrder  = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
     const stageLabels = { LAST_32:'ko_r16', LAST_16:'ko_r8', QUARTER_FINALS:'ko_qf', SEMI_FINALS:'ko_sf', FINAL:'ko_final' };
 
     const koByStage = {};
@@ -1986,48 +2223,63 @@ async function viewPlayerPicks(userId, displayName) {
       koByStage[match.stage].push({ pick: kp, match });
     });
 
-    const koRows = stageOrder.map(stage => {
+    const koExpanders = stageOrder.map(stage => {
       const rows = koByStage[stage];
       if (!rows?.length) return '';
-      return `<div style="margin-bottom:10px">
-        <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">${t(stageLabels[stage])}</div>
-        ${rows.map(({ pick, match }) => {
-          const team = findTeamById(pick.team_id);
-          const name = team ? t(team.nameKey) : pick.team_id;
-          const flag = team ? flagImg(team.flag_code, 22) : '<span style="font-size:18px">🏳</span>';
-          const isFinished = match.status === 'FINISHED';
-          const winner = isFinished ? (match.score?.winner === 'HOME_TEAM' ? match.homeTeam?.id : match.awayTeam?.id) : null;
-          const correct = winner && winner === pick.team_id;
-          const wrong   = winner && winner !== pick.team_id;
-          return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
-                              background:${correct?'rgba(45,158,88,0.1)':wrong?'rgba(232,85,85,0.05)':'var(--card2)'};
-                              border-radius:9px;margin-bottom:5px;
-                              border:.5px solid ${correct?'rgba(45,158,88,0.3)':wrong?'rgba(232,85,85,0.2)':'var(--border)'}">
-            ${flag}
-            <span style="flex:1;font-size:13px;opacity:${wrong?'0.5':'1'}">${name}</span>
-            ${correct ? '<span style="font-size:14px">✅</span>' : wrong ? '<span style="font-size:14px">❌</span>' : ''}
-          </div>`;
-        }).join('')}
-      </div>`;
+      const eid = 'ko-exp-' + userId.slice(0,8) + '-' + stage;
+      let stCorrect = 0, stWrong = 0, stPending = 0;
+      const picks = rows.map(({ pick, match }) => {
+        const team = findTeamById(pick.team_id);
+        const name = team ? t(team.nameKey) : pick.team_id;
+        const flag = team ? flagImg(team.flag_code, 22) : '<span style="font-size:18px">🏳</span>';
+        const isFinished = match.status === 'FINISHED';
+        const winner = isFinished ? (match.score?.winner === 'HOME_TEAM' ? match.homeTeam?.id : match.awayTeam?.id) : null;
+        const correct = winner && winner === pick.team_id;
+        const wrong   = winner && winner !== pick.team_id;
+        if (correct) { stCorrect++; koTotalCorrect++; }
+        else if (wrong) { stWrong++; koTotalWrong++; }
+        else { stPending++; koTotalPending++; }
+        return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
+                            background:${correct?'rgba(45,158,88,0.1)':wrong?'rgba(232,85,85,0.05)':'var(--card2)'};
+                            border-radius:9px;margin-bottom:5px;
+                            border:.5px solid ${correct?'rgba(45,158,88,0.3)':wrong?'rgba(232,85,85,0.2)':'var(--border)'}">
+          ${flag}
+          <span style="flex:1;font-size:13px;opacity:${wrong?'0.5':'1'}">${name}</span>
+          ${correct ? '<span style="font-size:14px">✅</span>' : wrong ? '<span style="font-size:14px">❌</span>' : ''}
+        </div>`;
+      }).join('');
+      return `
+        <div style="margin-bottom:10px;border:.5px solid var(--border);border-radius:12px;overflow:hidden">
+          <button onclick="const c=document.getElementById('${eid}');const open=c.style.display!=='none';c.style.display=open?'none':'block';this.querySelector('.chev').style.transform=open?'':'rotate(180deg)'"
+                  style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--card2);border:none;cursor:pointer;font-family:'DM Sans',sans-serif">
+            <div style="display:flex;align-items:center;gap:8px;min-width:0">
+              <i class="ti ti-tournament" style="color:var(--gold);flex-shrink:0"></i>
+              <span style="font-size:13px;font-weight:600;color:var(--text)">${t(stageLabels[stage])}</span>
+              <span style="font-size:11px">${miniSummary(stCorrect, stWrong, stPending)}</span>
+            </div>
+            <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;transform:rotate(180deg);flex-shrink:0"></i>
+          </button>
+          <div id="${eid}" style="padding:12px">
+            ${picks}
+          </div>
+        </div>`;
     }).join('');
 
-    if (koRows.trim()) {
-      koSection = `<div style="margin-top:16px;padding-top:14px;border-top:.5px solid var(--border)">
-        <div style="font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.5px;margin-bottom:10px">⚡ ${t('ko_title')}</div>
-        ${koRows}
-      </div>`;
+    if (koExpanders.trim()) {
+      koSection = `<div style="margin-top:4px">${koExpanders}</div>`;
     }
   }
 
-  content.innerHTML = statusHtml + wcGroups.map(g => {
+  // Fase de grupos — expander colapsado por defeito (fase já terminou)
+  const groupStageRows = wcGroups.map(g => {
     const gPicks = (byGroup[g.id] || []).sort((a,b) => a.pick_order - b.pick_order);
     if (!gPicks.length) return '';
     const teams = gPicks.map(p => g.teams.find(tm => tm.id === p.team_id)).filter(Boolean);
     if (!teams.length) return '';
-    return `<div style="margin-bottom:12px">
+    return `<div style="margin-bottom:10px">
       <div style="font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.5px;margin-bottom:6px">${t('picks_group')} ${g.id}</div>
       ${teams.map((tm, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card2);border-radius:9px;margin-bottom:5px;border:.5px solid var(--border)">
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--card2);border-radius:9px;margin-bottom:4px;border:.5px solid var(--border)">
           ${flagImg(tm.flag_code, 22)}
           <span style="flex:1;font-size:13px">${t(tm.nameKey)}</span>
           <span style="font-size:10px;font-weight:700;color:${i===0?'var(--gold)':i===1?'var(--gl)':'var(--muted)'};background:${i===0?'rgba(245,200,66,0.12)':i===1?'rgba(45,158,88,0.12)':'var(--card)'};padding:2px 8px;border-radius:6px">
@@ -2036,7 +2288,41 @@ async function viewPlayerPicks(userId, displayName) {
           ${definitelyQualified.has(tm.id) ? '<span style="font-size:14px">✅</span>' : wcResults['grupos']?.has(tm.id) ? '<span style="font-size:14px">🟡</span>' : groupsNotFinished.has(tm.id) ? '<span style="font-size:14px">⚽</span>' : '<span style="font-size:14px">❌</span>'}
         </div>`).join('')}
     </div>`;
-  }).join('') + koSection;
+  }).join('');
+
+  const expanderId = 'gs-expander-' + userId.slice(0,8);
+  const totalPicks   = playerPicks.length + userKoPicks.length;
+  const totalCorrect = gsCorrect + koTotalCorrect;
+  const totalWrong   = gsWrong  + koTotalWrong;
+  const totalPending = gsPending + koTotalPending;
+
+  const topSummary = `
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;
+                background:var(--card2);border-radius:10px;border:.5px solid var(--border)">
+      <span style="font-size:12px;color:var(--muted)">${totalPicks} apostas</span>
+      <span style="color:var(--border)">·</span>
+      ${totalCorrect > 0 ? `<span style="font-size:13px;font-weight:700;color:var(--gl)">${totalCorrect} ✅</span>` : ''}
+      ${totalWrong   > 0 ? `<span style="font-size:13px;font-weight:700;color:var(--red)">${totalWrong} ❌</span>` : ''}
+      ${totalPending > 0 ? `<span style="font-size:13px;color:var(--muted)">${totalPending} ⏳</span>` : ''}
+    </div>`;
+
+  const groupStageSection = `
+    <div style="margin-bottom:10px;border:.5px solid var(--border);border-radius:12px;overflow:hidden">
+      <button onclick="const c=document.getElementById('${expanderId}');const open=c.style.display!=='none';c.style.display=open?'none':'block';this.querySelector('.chev').style.transform=open?'':'rotate(180deg)'"
+              style="width:100%;display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--card2);border:none;cursor:pointer;font-family:'DM Sans',sans-serif">
+        <div style="display:flex;align-items:center;gap:8px;min-width:0">
+          <i class="ti ti-list-check" style="color:var(--gold);flex-shrink:0"></i>
+          <span style="font-size:13px;font-weight:600;color:var(--text)">${t('tab_group_stage')}</span>
+          <span style="font-size:11px">${miniSummary(gsCorrect, gsWrong, gsPending)}</span>
+        </div>
+        <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;flex-shrink:0"></i>
+      </button>
+      <div id="${expanderId}" style="display:none;padding:12px">
+        ${groupStageRows}
+      </div>
+    </div>`;
+
+  content.innerHTML = topSummary + groupStageSection + koSection;
 
   openModal('modal-picks-viewer');
 }
