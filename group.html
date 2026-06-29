@@ -1111,24 +1111,74 @@ async function renderBracket() {
       <svg width="${CONW}" height="${TOTAL}" style="overflow:visible">${paths}</svg>
     </div>`;
   }
-  // Bracket completo confirmado (IDs reais API + encadeamento oficial FIFA):
-  // QF M97 = W(M89) vs W(M90): slots 0-3
-  // QF M98 = W(M93) vs W(M94): slots 4-7
-  // QF M99 = W(M91) vs W(M92): slots 8-11
-  // QF M100= W(M95) vs W(M96): slots 12-15
-  // SF M101= W(M97) vs W(M98), SF M102= W(M99) vs W(M100)
-  const R32_IDS=[537415,537416,537417,537418,537419,537420,537421,537422,537423,537424,537425,537426,537427,537428,537429,537430];
   const byMid={};
   allMatches.forEach(m=>{byMid[m.id]=m;});
-  const r32=R32_IDS.map(id=>byMid[id]||{});
-  const r16=allMatches.filter(m=>m.stage==='LAST_16').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-  const qf =allMatches.filter(m=>m.stage==='QUARTER_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-  const sf =allMatches.filter(m=>m.stage==='SEMI_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
-  const fin=allMatches.filter(m=>m.stage==='FINAL');
-  const ph16  = r16.length  ? r16  : Array(8).fill({});
-  const phQF  = qf.length   ? qf   : Array(4).fill({});
-  const phSF  = sf.length   ? sf   : Array(2).fill({});
-  const phFin = fin.length  ? fin  : [{}];
+
+  // Mapeamento hardcoded do bracket oficial:
+  // Cada par de 16avos alimenta um 8avos; cada par de 8avos alimenta um QF; etc.
+  // A ordem define o visual do bracket (top → bottom)
+  const PAIRS_R32 = [
+    [537415, 537416],  // GER/PAR + FRA/SWE → 8avos slot 0
+    [537417, 537418],  // SAF/CAN + NED/MAR → 8avos slot 1
+    [537419, 537420],  // POR/CRO + ESP/AUT → 8avos slot 2
+    [537422, 537421],  // BEL/SEN + EUA/BIH → 8avos slot 3
+    [537423, 537424],  // BRA/JPN + CIV/NOR → 8avos slot 4
+    [537425, 537426],  // MEX/ECU + ENG/COD → 8avos slot 5
+    [537427, 537428],  // ARG/CPV + AUS/EGY → 8avos slot 6
+    [537429, 537430],  // SUI/ALG + COL/GHA → 8avos slot 7
+  ];
+
+  // r32: 16 jogos na ordem do bracket
+  const r32 = PAIRS_R32.flatMap(([a,b]) => [byMid[a]||{id:a}, byMid[b]||{id:b}]);
+
+  // Vencedor de um jogo (null se ainda não terminou)
+  function winner(m) {
+    if (!m || m.status !== 'FINISHED') return null;
+    return m.score?.winner === 'HOME_TEAM' ? m.homeTeam : m.awayTeam;
+  }
+
+  // Construir card sintético para fases seguintes
+  function synth(w1, w2) {
+    return { homeTeam: w1||null, awayTeam: w2||null, status:'SCHEDULED', score:{}, utcDate:'' };
+  }
+
+  // 8avos: vencedor de cada par de 16avos
+  const r16api = allMatches.filter(m=>m.stage==='LAST_16').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const ph16 = PAIRS_R32.map(([a,b], i) => {
+    const w1 = winner(byMid[a]), w2 = winner(byMid[b]);
+    // Se a API já tem o jogo real com equipa conhecida, usar esse
+    const real = r16api.find(m => (w1&&(m.homeTeam?.id===w1.id||m.awayTeam?.id===w1.id)) || (w2&&(m.homeTeam?.id===w2.id||m.awayTeam?.id===w2.id)));
+    return real || synth(w1, w2);
+  });
+
+  // QF: vencedor de cada par de 8avos (slots 0+1, 2+3, 4+5, 6+7)
+  const qfapi = allMatches.filter(m=>m.stage==='QUARTER_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const phQF = [0,1,2,3].map(i => {
+    const m1 = ph16[i*2], m2 = ph16[i*2+1];
+    const w1 = winner(m1), w2 = winner(m2);
+    const real = qfapi[i] && (qfapi[i].homeTeam?.id || qfapi[i].awayTeam?.id) ? qfapi[i] : null;
+    return real || synth(w1, w2);
+  });
+
+  // SF: vencedor de cada par de QF (slots 0+1, 2+3)
+  const sfapi = allMatches.filter(m=>m.stage==='SEMI_FINALS').sort((a,b)=>new Date(a.utcDate)-new Date(b.utcDate));
+  const phSF = [0,1].map(i => {
+    const m1 = phQF[i*2], m2 = phQF[i*2+1];
+    const w1 = winner(m1), w2 = winner(m2);
+    const real = sfapi[i] && (sfapi[i].homeTeam?.id || sfapi[i].awayTeam?.id) ? sfapi[i] : null;
+    return real || synth(w1, w2);
+  });
+
+  // Final: vencedor das duas meias
+  const finapi = allMatches.filter(m=>m.stage==='FINAL');
+  const phFin = (() => {
+    const w1 = winner(phSF[0]), w2 = winner(phSF[1]);
+    const real = finapi[0] && (finapi[0].homeTeam?.id || finapi[0].awayTeam?.id) ? finapi[0] : null;
+    return [real || synth(w1, w2)];
+  })();
+
+  const sf = sfapi;
+  const fin = finapi;
 
   // Jogo do 3º lugar — não está na API, inferir os perdedores das meias
   const sfLosers = sf.filter(m => m.status === 'FINISHED').map(m => {
