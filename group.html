@@ -2278,7 +2278,9 @@ async function viewPlayerPicks(userId, displayName) {
       const rows = koByStage[stage];
       if (!rows?.length) return '';
       const eid = 'ko-exp-' + userId.slice(0,8) + '-' + stage;
-      let stCorrect = 0, stWrong = 0, stPending = 0;
+      let stCorrect = 0, stWrong = 0, stPending = 0, stPts = 0;
+      const faseId = STAGE_MAP[stage];
+      const faseObj = FASES.find(f => f.id === faseId);
       const picks = rows.map(({ pick, match }) => {
         const team = findTeamById(pick.team_id);
         const name = team ? t(team.nameKey) : pick.team_id;
@@ -2287,7 +2289,7 @@ async function viewPlayerPicks(userId, displayName) {
         const winner = isFinished ? (match.score?.winner === 'HOME_TEAM' ? match.homeTeam?.id : match.awayTeam?.id) : null;
         const correct = winner && winner === pick.team_id;
         const wrong   = winner && winner !== pick.team_id;
-        if (correct) { stCorrect++; koTotalCorrect++; }
+        if (correct) { stCorrect++; koTotalCorrect++; if (faseObj) stPts += faseObj.pts; }
         else if (wrong) { stWrong++; koTotalWrong++; }
         else { stPending++; koTotalPending++; }
         return `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;
@@ -2307,6 +2309,7 @@ async function viewPlayerPicks(userId, displayName) {
               <i class="ti ti-tournament" style="color:var(--gold);flex-shrink:0"></i>
               <span style="font-size:13px;font-weight:600;color:var(--text)">${t(stageLabels[stage])}</span>
               <span style="font-size:11px">${miniSummary(stCorrect, stWrong, stPending)}</span>
+              ${stPts > 0 ? `<span style="font-size:11px;font-weight:700;color:var(--gold)">${stPts}pts</span>` : ''}
             </div>
             <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;transform:rotate(180deg);flex-shrink:0"></i>
           </button>
@@ -2346,15 +2349,19 @@ async function viewPlayerPicks(userId, displayName) {
   const totalCorrect = gsCorrect + koTotalCorrect;
   const totalWrong   = gsWrong  + koTotalWrong;
   const totalPending = gsPending + koTotalPending;
+  const gsPts    = gsCorrect * 1;
+  const totalPts = calcScore([...new Set(playerPicks.map(p=>p.team_id))], userKoPicks);
 
   const topSummary = `
-    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 14px;
                 background:var(--card2);border-radius:10px;border:.5px solid var(--border)">
       <span style="font-size:12px;color:var(--muted)">${totalPicks} apostas</span>
       <span style="color:var(--border)">·</span>
       ${totalCorrect > 0 ? `<span style="font-size:13px;font-weight:700;color:var(--gl)">${totalCorrect} ✅</span>` : ''}
       ${totalWrong   > 0 ? `<span style="font-size:13px;font-weight:700;color:var(--red)">${totalWrong} ❌</span>` : ''}
       ${totalPending > 0 ? `<span style="font-size:13px;color:var(--muted)">${totalPending} ⏳</span>` : ''}
+      <span style="color:var(--border)">·</span>
+      <span style="font-size:14px;font-weight:700;color:var(--gold)">${totalPts} pts</span>
     </div>`;
 
   const groupStageSection = `
@@ -2365,6 +2372,7 @@ async function viewPlayerPicks(userId, displayName) {
           <i class="ti ti-list-check" style="color:var(--gold);flex-shrink:0"></i>
           <span style="font-size:13px;font-weight:600;color:var(--text)">${t('tab_group_stage')}</span>
           <span style="font-size:11px">${miniSummary(gsCorrect, gsWrong, gsPending)}</span>
+          ${gsPts > 0 ? `<span style="font-size:11px;font-weight:700;color:var(--gold)">${gsPts}pts</span>` : ''}
         </div>
         <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;flex-shrink:0"></i>
       </button>
