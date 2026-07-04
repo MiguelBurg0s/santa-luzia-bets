@@ -895,7 +895,7 @@ const MATCHES_TTL   = 5 * 60 * 1000; // cache 5 min
 const STAGE_LABELS = {
   'GROUP_STAGE':    'matches_stage_groups',
   'LAST_32':        'matches_stage_r16',
-  'LAST_16':        'matches_stage_r16',
+  'LAST_16':        'matches_stage_r8',
   'QUARTER_FINALS': 'matches_stage_qf',
   'SEMI_FINALS':    'matches_stage_sf',
   'FINAL':          'matches_stage_final',
@@ -1077,14 +1077,20 @@ async function renderBracket() {
   }
   function card(m) {
     if (!m) m = {};
-    const ph  = (!m.homeTeam?.id&&!m.awayTeam?.id&&KO_R32_PLACEHOLDERS[m.id])||{};
-    const fin = m.status==='FINISHED';
-    const live= m.status==='IN_PLAY'||m.status==='PAUSED';
-    const hw  = m.score?.winner==='HOME_TEAM', aw=m.score?.winner==='AWAY_TEAM';
+    const ph   = (!m.homeTeam?.id&&!m.awayTeam?.id&&KO_R32_PLACEHOLDERS[m.id])||{};
+    const fin  = m.status==='FINISHED';
+    const live = m.status==='IN_PLAY'||m.status==='PAUSED';
+    const hw   = m.score?.winner==='HOME_TEAM', aw=m.score?.winner==='AWAY_TEAM';
+    const penH = m.score?.penalties?.home, penA = m.score?.penalties?.away;
+    const hasPens = fin && penH !== null && penH !== undefined;
+    const regH = hasPens ? (m.score?.fullTime?.home??0) - penH : m.score?.fullTime?.home;
+    const regA = hasPens ? (m.score?.fullTime?.away??0) - penA : m.score?.fullTime?.away;
+    const homeGoals = hasPens && regH !== null ? `${regH} (${penH})` : regH;
+    const awayGoals = hasPens && regA !== null ? `${regA} (${penA})` : regA;
     return `<div style="background:var(--card2);outline:.5px solid ${live?'var(--red)':'var(--border)'};border-radius:7px;overflow:hidden;width:${CW}px;height:${H}px;box-sizing:border-box">
-      ${teamRow(m.homeTeam,ph.home,hw,aw&&fin,m.score?.fullTime?.home,fin)}
+      ${teamRow(m.homeTeam,ph.home,hw,aw&&fin,homeGoals,fin)}
       <div style="height:.5px;background:var(--border2)"></div>
-      ${teamRow(m.awayTeam,ph.away,aw,hw&&fin,m.score?.fullTime?.away,fin)}
+      ${teamRow(m.awayTeam,ph.away,aw,hw&&fin,awayGoals,fin)}
     </div>`;
   }
   function col(matches, phase, label) {
@@ -1243,8 +1249,15 @@ function renderMatchList(matches, isFinished) {
     const liveAway = m.score?.fullTime?.away ?? m.score?.halfTime?.away ?? null;
     const hasLiveScore = isLive && liveHome !== null && liveAway !== null;
 
+    const penHome = m.score?.penalties?.home;
+    const penAway = m.score?.penalties?.away;
+    const hasPens = isFinished && penHome !== null && penHome !== undefined;
+    const regHome = hasPens ? (m.score?.fullTime?.home ?? 0) - penHome : (m.score?.fullTime?.home ?? 0);
+    const regAway = hasPens ? (m.score?.fullTime?.away ?? 0) - penAway : (m.score?.fullTime?.away ?? 0);
+    const penStr = hasPens ? `<span style="font-size:10px;color:var(--muted);display:block;margin-top:1px">(pen. ${penHome}–${penAway})</span>` : '';
+
     const scoreOrTime = isFinished
-      ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);letter-spacing:2px">${m.score?.fullTime?.home ?? 0} – ${m.score?.fullTime?.away ?? 0}</span>`
+      ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--text);letter-spacing:2px;display:block;line-height:1">${regHome} – ${regAway}${penStr}</span>`
       : isLive
       ? `<span style="font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--red);letter-spacing:2px">${hasLiveScore ? `${liveHome} – ${liveAway}` : '– –'}</span>`
       : `<span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--gold)">${date.toLocaleTimeString(getLang()==='pt'?'pt-PT':getLang()==='es'?'es-ES':'en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Europe/Lisbon'})}</span>`;
@@ -2301,6 +2314,9 @@ async function viewPlayerPicks(userId, displayName) {
           ${correct ? '<span style="font-size:14px">✅</span>' : wrong ? '<span style="font-size:14px">❌</span>' : ''}
         </div>`;
       }).join('');
+      // Colapsar se todos os jogos desta fase já terminaram
+      const stageDone = rows.every(({ match }) => match.status === 'FINISHED');
+      const expanded  = !stageDone;
       return `
         <div style="margin-bottom:10px;border:.5px solid var(--border);border-radius:12px;overflow:hidden">
           <button onclick="const c=document.getElementById('${eid}');const open=c.style.display!=='none';c.style.display=open?'none':'block';this.querySelector('.chev').style.transform=open?'':'rotate(180deg)'"
@@ -2311,9 +2327,9 @@ async function viewPlayerPicks(userId, displayName) {
               <span style="font-size:11px">${miniSummary(stCorrect, stWrong, stPending)}</span>
               ${stPts > 0 ? `<span style="font-size:11px;font-weight:700;color:var(--gold)">${stPts}pts</span>` : ''}
             </div>
-            <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;transform:rotate(180deg);flex-shrink:0"></i>
+            <i class="ti ti-chevron-down chev" style="color:var(--muted);font-size:16px;transition:transform .2s;${expanded?'transform:rotate(180deg)':''};flex-shrink:0"></i>
           </button>
-          <div id="${eid}" style="padding:12px">
+          <div id="${eid}" style="display:${expanded?'block':'none'};padding:12px">
             ${picks}
           </div>
         </div>`;
