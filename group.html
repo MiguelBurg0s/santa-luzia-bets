@@ -899,6 +899,7 @@ const STAGE_LABELS = {
   'QUARTER_FINALS': 'matches_stage_qf',
   'SEMI_FINALS':    'matches_stage_sf',
   'FINAL':          'matches_stage_final',
+  'THIRD_PLACE':    'matches_stage_third',
 };
 
 let matchesFetching = null; // singleton promise to avoid parallel fetches
@@ -1491,15 +1492,16 @@ async function renderKOExpanders(skipPicksFetch = false) {
   }
 
   const stages = [
-    { key: 'LAST_32',        label: 'ko_r16', pts: 2, icon: 'ti-tournament' },
-    { key: 'LAST_16',        label: 'ko_r8',  pts: 2, icon: 'ti-tournament' },
-    { key: 'QUARTER_FINALS', label: 'ko_qf',  pts: 2, icon: 'ti-tournament' },
-    { key: 'SEMI_FINALS',    label: 'ko_sf',  pts: 3, icon: 'ti-trophy'     },
-    { key: 'FINAL',          label: 'ko_final',pts: 3, icon: 'ti-star'      },
+    { key: 'LAST_32',        label: 'ko_r16',  pts: 2, icon: 'ti-tournament' },
+    { key: 'LAST_16',        label: 'ko_r8',   pts: 2, icon: 'ti-tournament' },
+    { key: 'QUARTER_FINALS', label: 'ko_qf',   pts: 2, icon: 'ti-tournament' },
+    { key: 'SEMI_FINALS',    label: 'ko_sf',   pts: 3, icon: 'ti-trophy'     },
+    { key: 'THIRD_PLACE',    label: 'ko_third',pts: 3, icon: 'ti-medal'      },
+    { key: 'FINAL',          label: 'ko_final', pts: 3, icon: 'ti-star'      },
   ];
 
   // Reset KO expander states para recalcular com base nos jogos actuais
-  const koStageKeys = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
+  const koStageKeys = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
   koStageKeys.forEach(k => delete expanderState[k]);
 
   // Determinar qual stage abrir por defeito — o primeiro com jogos ainda não locked
@@ -1555,7 +1557,7 @@ let koPicks    = {};    // { matchId: teamId } — pick do utilizador
 
 async function fetchKOMatches() {
   if (koMatches) return koMatches;
-  const data = await fdFetch('/competitions/WC/matches?season=2026&stage=LAST_32,LAST_16,QUARTER_FINALS,SEMI_FINALS,FINAL');
+  const data = await fdFetch('/competitions/WC/matches?season=2026&stage=LAST_32,LAST_16,QUARTER_FINALS,SEMI_FINALS,THIRD_PLACE,FINAL');
   koMatches = (data.matches || []).filter(m => m.stage !== 'GROUP_STAGE');
   return koMatches;
 }
@@ -2276,8 +2278,8 @@ async function viewPlayerPicks(userId, displayName) {
   let koTotalCorrect = 0, koTotalWrong = 0, koTotalPending = 0;
 
   if (userKoPicks.length > 0 && koMatches) {
-    const stageOrder  = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','FINAL'];
-    const stageLabels = { LAST_32:'ko_r16', LAST_16:'ko_r8', QUARTER_FINALS:'ko_qf', SEMI_FINALS:'ko_sf', FINAL:'ko_final' };
+    const stageOrder  = ['LAST_32','LAST_16','QUARTER_FINALS','SEMI_FINALS','THIRD_PLACE','FINAL'];
+    const stageLabels = { LAST_32:'ko_r16', LAST_16:'ko_r8', QUARTER_FINALS:'ko_qf', SEMI_FINALS:'ko_sf', FINAL:'ko_final', THIRD_PLACE:'ko_third' };
 
     const koByStage = {};
     userKoPicks.forEach(kp => {

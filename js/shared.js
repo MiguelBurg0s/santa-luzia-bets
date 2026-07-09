@@ -24,6 +24,7 @@ const FASES = [
   { id:'quartos', label:'Quartos de Final', pts:2, max:2  },
   { id:'meias',   label:'Meias-finais',     pts:3, max:1  },
   { id:'campeao', label:'Campeao',          pts:3, max:1  },
+  { id:'terceiro', label:'3º/4º Lugar',       pts:3, max:1  },
 ];
 
 // Mapear stage da API -> fase id
@@ -34,6 +35,7 @@ const STAGE_MAP = {
   'QUARTER_FINALS' : 'quartos',
   'SEMI_FINALS'    : 'meias',
   'FINAL'          : 'campeao',
+  'THIRD_PLACE'    : 'terceiro',
 };
 
 // -- FOOTBALL-DATA.ORG API (via Supabase Edge Function proxy) --
